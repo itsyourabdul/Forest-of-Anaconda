@@ -13,9 +13,12 @@
             left: 20px;
             color: #ff0000;
             text-shadow: 0 0 10px #ff0000;
-            font-size: 24px;
+            font-size: 28px;
             pointer-events: none;
             z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 20px;
         }
         #gameOver {
             position: absolute;
@@ -54,21 +57,29 @@
     </style>
 </head>
 <body>
-    <div id="ui">SCORE: <span id="score">0</span></div>
+    <div id="ui">
+        SCORE: <span id="score">0</span>
+        <span style="font-size:22px; opacity:0.8;">|</span>
+        HIGH SCORE: <span id="highScore">0</span>
+    </div>
     <div id="gameOver">
         YOU DIED<br>
         <span style="font-size: 24px;">PRESS R TO RESTART</span>
     </div>
     <div id="flash"></div>
     <div id="instructions">
-        ARROW KEYS or WASD • EAT THE EYES • SURVIVE THE DARK
+        ARROW KEYS or WASD • EAT THE EYES • SURVIVE THE FOREST
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script>
         // =============================================
-        // 3D HORROR SNAKE - Improved Lighting Version
-        // Brighter, clearer lighting while keeping horror atmosphere
+        // 3D HORROR SNAKE - Realistic Forest Edition
+        // • Cylindrical snake body with proper segment orientation
+        // • Longer, more organic head
+        // • Trees added (forest atmosphere)
+        // • Walls completely removed (open forest, invisible boundaries only)
+        // • Enhanced scoreboard with persistent high score
         // =============================================
 
         let scene, camera, renderer;
@@ -81,23 +92,23 @@
         let pendingDirection = null;
         let gameOver = false;
         let score = 0;
+        let highScore = parseInt(localStorage.getItem('horrorSnakeHighScore') || '0');
         let lastMoveTime = 0;
         let clock;
         let MOVE_INTERVAL = 160;
-        let headMeshIndex = 0;
 
         // Horror elements
         let dirLight, ambientLight, hemiLight, redLight;
         let eyeMeshes = [];
+
+        // Shake
         let shakeIntensity = 0;
         let shakeDecay = 0;
 
-        // Updated CONFIG with brighter base colors + lighting values
         const CONFIG = {
-            SNAKE_COLOR: 0x228822,
-            HEAD_COLOR: 0x33dd33,
-            BODY_EMISSIVE: 0x004400,
-            WALL_COLOR: 0x442222,
+            SNAKE_COLOR: 0x0f4a0f,
+            HEAD_COLOR: 0x22aa22,
+            BODY_EMISSIVE: 0x002200,
             FLOOR_COLOR: 0x221133,
             FOG_COLOR: 0x223355,
             EYE_GLOW: 0x00ff88,
@@ -116,34 +127,66 @@
             );
         }
 
-        // Create a single snake segment
+        // Create a single snake segment - MORE REALISTIC
         function createSegmentMesh(isHead = false) {
-            const geometry = isHead 
-                ? new THREE.BoxGeometry(CONFIG.CELL_SIZE * 0.95, CONFIG.CELL_SIZE * 0.95, CONFIG.CELL_SIZE * 0.95)
-                : new THREE.BoxGeometry(CONFIG.CELL_SIZE * 0.85, CONFIG.CELL_SIZE * 0.85, CONFIG.CELL_SIZE * 0.85);
-            
-            const material = new THREE.MeshStandardMaterial({
-                color: isHead ? CONFIG.HEAD_COLOR : CONFIG.SNAKE_COLOR,
-                emissive: CONFIG.BODY_EMISSIVE,
-                emissiveIntensity: isHead ? 0.8 : 0.4,
-                roughness: 0.6,
-                metalness: 0.2
-            });
-            
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
+            let mesh;
             
             if (isHead) {
-                const eyeGeo = new THREE.SphereGeometry(0.25, 8, 8);
+                // Realistic head: longer box (elongated forward), darker green
+                const geometry = new THREE.BoxGeometry(
+                    CONFIG.CELL_SIZE * 0.88, 
+                    CONFIG.CELL_SIZE * 0.92, 
+                    CONFIG.CELL_SIZE * 1.35   // longer in forward axis
+                );
+                
+                const material = new THREE.MeshStandardMaterial({
+                    color: CONFIG.HEAD_COLOR,
+                    emissive: CONFIG.BODY_EMISSIVE,
+                    emissiveIntensity: 0.9,
+                    roughness: 0.5,
+                    metalness: 0.3
+                });
+                
+                mesh = new THREE.Mesh(geometry, material);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                
+                // Red glowing eyes (slightly repositioned for longer head)
+                const eyeGeo = new THREE.SphereGeometry(0.27, 8, 8);
                 const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                
                 const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-                leftEye.position.set(0.4, 0.4, 0.4);
+                leftEye.position.set(0.38, 0.38, 0.48);
                 mesh.add(leftEye);
+                
                 const rightEye = leftEye.clone();
-                rightEye.position.z = -0.4;
+                rightEye.position.z = -0.48;
                 mesh.add(rightEye);
+            } else {
+                // Realistic body: smooth cylinder (looks like real snake segments)
+                const geometry = new THREE.CylinderGeometry(
+                    CONFIG.CELL_SIZE * 0.38,  // top radius
+                    CONFIG.CELL_SIZE * 0.42,  // bottom radius (slightly tapered)
+                    CONFIG.CELL_SIZE * 0.92,  // length
+                    16                        // smooth roundness
+                );
+                
+                const material = new THREE.MeshStandardMaterial({
+                    color: CONFIG.SNAKE_COLOR,
+                    emissive: CONFIG.BODY_EMISSIVE,
+                    emissiveIntensity: 0.45,
+                    roughness: 0.45,
+                    metalness: 0.1
+                });
+                
+                mesh = new THREE.Mesh(geometry, material);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                
+                // Rotate cylinder to lie horizontally along +Z (will be rotated per segment later)
+                mesh.rotation.x = Math.PI / 2;
             }
+            
             return mesh;
         }
 
@@ -171,10 +214,53 @@
             return eye;
         }
 
-        // Initialize Three.js scene with MUCH brighter & clearer lighting
+        // Create realistic forest tree
+        function createTree() {
+            const group = new THREE.Group();
+            
+            // Trunk (dark bark for horror forest)
+            const trunkGeometry = new THREE.CylinderGeometry(0.35, 0.55, 5.2, 6);
+            const trunkMaterial = new THREE.MeshStandardMaterial({
+                color: 0x3c2a1f,
+                roughness: 1,
+                metalness: 0.05
+            });
+            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+            trunk.position.y = 2.6;
+            trunk.castShadow = true;
+            trunk.receiveShadow = true;
+            group.add(trunk);
+            
+            // Foliage - 3 layered cones (dark, ominous green)
+            const foliageMaterial = new THREE.MeshStandardMaterial({
+                color: 0x0d2e0d,
+                roughness: 0.9,
+                metalness: 0
+            });
+            
+            const foliageData = [
+                { radius: 2.9, height: 3.6, y: 5.1 },
+                { radius: 2.2, height: 3.2, y: 7.4 },
+                { radius: 1.4, height: 2.8, y: 9.3 }
+            ];
+            
+            foliageData.forEach(data => {
+                const cone = new THREE.Mesh(
+                    new THREE.ConeGeometry(data.radius, data.height, 8),
+                    foliageMaterial
+                );
+                cone.position.y = data.y;
+                cone.castShadow = true;
+                group.add(cone);
+            });
+            
+            return group;
+        }
+
+        // Initialize Three.js scene
         function initScene() {
             scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(CONFIG.FOG_COLOR, 18, 110); // brighter fog + longer visibility
+            scene.fog = new THREE.Fog(CONFIG.FOG_COLOR, 18, 110);
             
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
             camera.position.set(0, 38, 45);
@@ -189,16 +275,13 @@
             
             clock = new THREE.Clock();
             
-            // === IMPROVED LIGHTING ===
-            // Strong ambient light for overall brightness
+            // === LIGHTING (kept bright & clear for visibility while horror) ===
             ambientLight = new THREE.AmbientLight(0x335577, 0.65);
             scene.add(ambientLight);
             
-            // Hemisphere light (sky + ground) for natural, clear illumination
             hemiLight = new THREE.HemisphereLight(0x445577, CONFIG.FLOOR_COLOR, 0.55);
             scene.add(hemiLight);
             
-            // Main directional light - much brighter and warmer
             dirLight = new THREE.DirectionalLight(0xffeecc, 1.25);
             dirLight.position.set(25, 40, 20);
             dirLight.castShadow = true;
@@ -206,21 +289,20 @@
             dirLight.shadow.mapSize.height = 1024;
             dirLight.shadow.camera.near = 1;
             dirLight.shadow.camera.far = 100;
-            dirLight.shadow.camera.left = -30;
-            dirLight.shadow.camera.right = 30;
-            dirLight.shadow.camera.top = 30;
-            dirLight.shadow.camera.bottom = -30;
+            dirLight.shadow.camera.left = -40;
+            dirLight.shadow.camera.right = 40;
+            dirLight.shadow.camera.top = 40;
+            dirLight.shadow.camera.bottom = -40;
             scene.add(dirLight);
             
-            // Eerie red point light - slightly brighter but not overpowering
             redLight = new THREE.PointLight(0xff2233, 0.85, 80);
             redLight.position.set(15, 12, -15);
             scene.add(redLight);
             
-            // Floor
+            // Large forest floor
             const floorGeo = new THREE.PlaneGeometry(
-                CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 12,
-                CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 12
+                CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 68,
+                CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 68
             );
             const floorMat = new THREE.MeshStandardMaterial({
                 color: CONFIG.FLOOR_COLOR,
@@ -233,42 +315,13 @@
             floor.receiveShadow = true;
             scene.add(floor);
             
-            // Arena walls
+            // Arena size reference (used for eyes only - walls removed)
             const arenaHalf = (CONFIG.GRID_SIZE * CONFIG.CELL_SIZE) / 2;
-            const wallMat = new THREE.MeshStandardMaterial({
-                color: CONFIG.WALL_COLOR,
-                roughness: 1,
-                metalness: 0
-            });
-            const wallHeight = 8;
-            const wallThickness = 1.2;
             
-            const sideGeo = new THREE.BoxGeometry(wallThickness, wallHeight, CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 4);
-            const leftWall = new THREE.Mesh(sideGeo, wallMat);
-            leftWall.position.set(-arenaHalf - wallThickness / 2, wallHeight / 2, 0);
-            leftWall.castShadow = true;
-            leftWall.receiveShadow = true;
-            scene.add(leftWall);
-            
-            const rightWall = leftWall.clone();
-            rightWall.position.x = arenaHalf + wallThickness / 2;
-            scene.add(rightWall);
-            
-            const endGeo = new THREE.BoxGeometry(CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 4, wallHeight, wallThickness);
-            const backWall = new THREE.Mesh(endGeo, wallMat);
-            backWall.position.set(0, wallHeight / 2, -arenaHalf - wallThickness / 2);
-            backWall.castShadow = true;
-            backWall.receiveShadow = true;
-            scene.add(backWall);
-            
-            const frontWall = backWall.clone();
-            frontWall.position.z = arenaHalf + wallThickness / 2;
-            scene.add(frontWall);
-            
-            // Background glowing eyes
+            // Background glowing eyes (now floating in the dark forest - extra creepy)
             eyeMeshes = [];
             const eyeCountPerWall = 6;
-            // Left wall
+            // Left side
             for (let i = 0; i < eyeCountPerWall; i++) {
                 const eye = createEye();
                 eye.position.set(
@@ -279,7 +332,7 @@
                 scene.add(eye);
                 eyeMeshes.push(eye);
             }
-            // Right wall
+            // Right side
             for (let i = 0; i < eyeCountPerWall; i++) {
                 const eye = createEye();
                 eye.position.set(
@@ -290,7 +343,7 @@
                 scene.add(eye);
                 eyeMeshes.push(eye);
             }
-            // Back wall
+            // Back side
             for (let i = 0; i < eyeCountPerWall; i++) {
                 const eye = createEye();
                 eye.position.set(
@@ -302,7 +355,19 @@
                 eyeMeshes.push(eye);
             }
             
-            console.log('%c3D HORROR SNAKE - Brighter & Clearer Lighting Ready', 'color:#00ff88; font-family:monospace');
+            // === ADD FOREST TREES ===
+            const numTrees = 28;
+            const treeSpread = CONFIG.GRID_SIZE * CONFIG.CELL_SIZE * 1.9;
+            for (let i = 0; i < numTrees; i++) {
+                const tree = createTree();
+                const x = (Math.random() - 0.5) * treeSpread;
+                const z = (Math.random() - 0.5) * treeSpread;
+                tree.position.set(x, 0, z);
+                tree.rotation.y = Math.random() * Math.PI * 2;
+                scene.add(tree);
+            }
+            
+            console.log('%c3D HORROR SNAKE - Realistic Forest Edition Ready', 'color:#00ff88; font-family:monospace');
         }
 
         // Initialize snake
@@ -364,7 +429,7 @@
             scene.add(foodMesh);
         }
 
-        // Core move logic
+        // Core move logic (walls removed - only invisible grid bounds remain)
         function moveSnake() {
             if (gameOver) return;
             
@@ -459,6 +524,13 @@
                     mesh.material.emissiveIntensity = 2.5;
                 }
             });
+            
+            // Update high score
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('horrorSnakeHighScore', highScore);
+                document.getElementById('highScore').textContent = highScore;
+            }
         }
 
         // Keyboard controls
@@ -527,6 +599,8 @@
             }
             
             const progress = Math.min((currentTime - lastMoveTime) / MOVE_INTERVAL, 1);
+            
+            // Update snake with realistic body orientation
             for (let i = 0; i < snakeMeshes.length; i++) {
                 if (!previousSnakeGrid[i] || !snakeGridPositions[i]) continue;
                 
@@ -536,8 +610,15 @@
                 const lerpedPos = from.clone().lerp(to, progress);
                 snakeMeshes[i].position.copy(lerpedPos);
                 
+                // Head faces movement direction
                 if (i === 0 && snakeMeshes[0]) {
                     snakeMeshes[0].rotation.y = Math.atan2(direction.x, direction.z);
+                } 
+                // Body segments face toward the segment in front of them (realistic snake curve)
+                else if (i > 0 && snakeGridPositions[i-1] && snakeGridPositions[i]) {
+                    const dir = snakeGridPositions[i-1].clone().sub(snakeGridPositions[i]).normalize();
+                    const angle = Math.atan2(dir.x, dir.z);
+                    snakeMeshes[i].rotation.y = angle;
                 }
             }
             
@@ -575,9 +656,13 @@
             spawnFood();
             setupControls();
             lastMoveTime = Date.now();
+            
+            // Set initial high score display
+            document.getElementById('highScore').textContent = highScore;
+            
             animate();
             
-            console.log('%c✅ 3D HORROR SNAKE - Brighter & Clearer Lighting Active', 'color:#00ff88; background:#110022; padding:2px 6px');
+            console.log('%c✅ 3D HORROR SNAKE - Realistic Forest Edition Active (No walls, trees added, realistic snake)', 'color:#00ff88; background:#110022; padding:2px 6px');
         }
         
         window.onload = startGame;
