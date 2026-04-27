@@ -74,12 +74,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script>
         // =============================================
-        // 3D HORROR SNAKE - Realistic Forest Edition
-        // • Cylindrical snake body with proper segment orientation
-        // • Longer, more organic head
-        // • Trees added (forest atmosphere)
-        // • Walls completely removed (open forest, invisible boundaries only)
-        // • Enhanced scoreboard with persistent high score
+        // 3D HORROR SNAKE - Realistic Forest Edition (Fixed & Easy to Play)
+        // • All bugs fixed (eye positions, resize, controls)
+        // • Slower starting speed = easier to play
+        // • Fullscreen on any device/screen size
+        // • No page scrolling on arrow keys
+        // • Smoother & more stable
         // =============================================
 
         let scene, camera, renderer;
@@ -95,7 +95,7 @@
         let highScore = parseInt(localStorage.getItem('horrorSnakeHighScore') || '0');
         let lastMoveTime = 0;
         let clock;
-        let MOVE_INTERVAL = 160;
+        let MOVE_INTERVAL = 200; // SLOWER = easier to play (was 160)
 
         // Horror elements
         let dirLight, ambientLight, hemiLight, redLight;
@@ -114,7 +114,6 @@
             EYE_GLOW: 0x00ff88,
             GRID_SIZE: 22,
             CELL_SIZE: 2.2,
-            MOVE_SPEED: 160,
             INITIAL_LENGTH: 6
         };
 
@@ -151,16 +150,16 @@
                 mesh.castShadow = true;
                 mesh.receiveShadow = true;
                 
-                // Red glowing eyes (slightly repositioned for longer head)
+                // FIXED: Red glowing eyes (proper left/right placement)
                 const eyeGeo = new THREE.SphereGeometry(0.27, 8, 8);
                 const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
                 
                 const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-                leftEye.position.set(0.38, 0.38, 0.48);
+                leftEye.position.set(0.38, 0.38, 0.48);   // left side, near front
                 mesh.add(leftEye);
                 
                 const rightEye = leftEye.clone();
-                rightEye.position.z = -0.48;
+                rightEye.position.set(-0.38, 0.38, 0.48); // right side, near front
                 mesh.add(rightEye);
             } else {
                 // Realistic body: smooth cylinder (looks like real snake segments)
@@ -367,6 +366,14 @@
                 scene.add(tree);
             }
             
+            // FIXED: Fullscreen resize support
+            const handleResize = () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            };
+            window.addEventListener('resize', handleResize);
+            
             console.log('%c3D HORROR SNAKE - Realistic Forest Edition Ready', 'color:#00ff88; font-family:monospace');
         }
 
@@ -533,11 +540,14 @@
             }
         }
 
-        // Keyboard controls
+        // Keyboard controls (fixed: no page scrolling)
         function setupControls() {
             document.addEventListener('keydown', (e) => {
                 if (gameOver) {
-                    if (e.key.toLowerCase() === 'r') resetGame();
+                    if (e.key.toLowerCase() === 'r') {
+                        resetGame();
+                        e.preventDefault();
+                    }
                     return;
                 }
                 
@@ -566,7 +576,10 @@
                         break;
                 }
                 
-                if (newDir) pendingDirection = newDir;
+                if (newDir) {
+                    pendingDirection = newDir;
+                    e.preventDefault(); // Prevents page scrolling
+                }
             });
         }
 
@@ -662,7 +675,7 @@
             
             animate();
             
-            console.log('%c✅ 3D HORROR SNAKE - Realistic Forest Edition Active (No walls, trees added, realistic snake)', 'color:#00ff88; background:#110022; padding:2px 6px');
+            console.log('%c✅ 3D HORROR SNAKE - Fixed & Easy to Play (Full display + slower speed)', 'color:#00ff88; background:#110022; padding:2px 6px');
         }
         
         window.onload = startGame;
