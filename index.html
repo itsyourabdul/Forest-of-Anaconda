@@ -67,8 +67,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script>
         // =============================================
-        // 3D HORROR SNAKE - Modular & Expandable
-        // Three.js + Horror Effects (dark fog, flickering, eyes, jump-scares)
+        // 3D HORROR SNAKE - Improved Lighting Version
+        // Brighter, clearer lighting while keeping horror atmosphere
         // =============================================
 
         let scene, camera, renderer;
@@ -83,26 +83,23 @@
         let score = 0;
         let lastMoveTime = 0;
         let clock;
-        let MOVE_INTERVAL = 160; // ms - lower = faster snake (smooth movement via lerp)
-        let GRID_SIZE = 22;
-        let CELL_SIZE = 2.2;
-        let arenaHalf;
-        let headMeshIndex = 0; // index 0 is always head (different material)
+        let MOVE_INTERVAL = 160;
+        let headMeshIndex = 0;
 
         // Horror elements
-        let dirLight, ambientLight;
+        let dirLight, ambientLight, hemiLight, redLight;
         let eyeMeshes = [];
         let shakeIntensity = 0;
         let shakeDecay = 0;
 
-        // Modular constants for easy expansion
+        // Updated CONFIG with brighter base colors + lighting values
         const CONFIG = {
-            SNAKE_COLOR: 0x113311,
-            HEAD_COLOR: 0x22aa22,
-            BODY_EMISSIVE: 0x001100,
-            WALL_COLOR: 0x331111,
-            FLOOR_COLOR: 0x110011,
-            FOG_COLOR: 0x110022,
+            SNAKE_COLOR: 0x228822,
+            HEAD_COLOR: 0x33dd33,
+            BODY_EMISSIVE: 0x004400,
+            WALL_COLOR: 0x442222,
+            FLOOR_COLOR: 0x221133,
+            FOG_COLOR: 0x223355,
             EYE_GLOW: 0x00ff88,
             GRID_SIZE: 22,
             CELL_SIZE: 2.2,
@@ -110,16 +107,16 @@
             INITIAL_LENGTH: 6
         };
 
-        // Helper: convert grid coords to world position (centered arena)
+        // Helper: convert grid coords to world position
         function gridToWorld(gridPos) {
             return new THREE.Vector3(
                 (gridPos.x - CONFIG.GRID_SIZE / 2 + 0.5) * CONFIG.CELL_SIZE,
-                0.5, // floating above floor
+                0.5,
                 (gridPos.z - CONFIG.GRID_SIZE / 2 + 0.5) * CONFIG.CELL_SIZE
             );
         }
 
-        // Create a single snake segment (modular - easy to swap geometry later)
+        // Create a single snake segment
         function createSegmentMesh(isHead = false) {
             const geometry = isHead 
                 ? new THREE.BoxGeometry(CONFIG.CELL_SIZE * 0.95, CONFIG.CELL_SIZE * 0.95, CONFIG.CELL_SIZE * 0.95)
@@ -128,16 +125,15 @@
             const material = new THREE.MeshStandardMaterial({
                 color: isHead ? CONFIG.HEAD_COLOR : CONFIG.SNAKE_COLOR,
                 emissive: CONFIG.BODY_EMISSIVE,
-                emissiveIntensity: isHead ? 0.6 : 0.2,
-                roughness: 0.7,
-                metalness: 0.3
+                emissiveIntensity: isHead ? 0.8 : 0.4,
+                roughness: 0.6,
+                metalness: 0.2
             });
             
             const mesh = new THREE.Mesh(geometry, material);
             mesh.castShadow = true;
             mesh.receiveShadow = true;
             
-            // Horror detail: tiny glowing "veins" on head
             if (isHead) {
                 const eyeGeo = new THREE.SphereGeometry(0.25, 8, 8);
                 const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
@@ -151,24 +147,23 @@
             return mesh;
         }
 
-        // Create glowing background eye (creepy watcher effect)
+        // Create glowing background eye
         function createEye() {
             const eye = new THREE.Mesh(
                 new THREE.SphereGeometry(0.25, 6, 6),
                 new THREE.MeshBasicMaterial({
                     color: CONFIG.EYE_GLOW,
                     transparent: true,
-                    opacity: 0.9
+                    opacity: 0.95
                 })
             );
-            // Add subtle glow ring
             const ring = new THREE.Mesh(
                 new THREE.RingGeometry(0.28, 0.35, 8),
                 new THREE.MeshBasicMaterial({
                     color: CONFIG.EYE_GLOW,
                     side: THREE.DoubleSide,
                     transparent: true,
-                    opacity: 0.4
+                    opacity: 0.5
                 })
             );
             ring.rotation.x = Math.PI / 2;
@@ -176,10 +171,10 @@
             return eye;
         }
 
-        // Initialize Three.js scene with horror atmosphere
+        // Initialize Three.js scene with MUCH brighter & clearer lighting
         function initScene() {
             scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(CONFIG.FOG_COLOR, 25, 80); // thick mist
+            scene.fog = new THREE.Fog(CONFIG.FOG_COLOR, 18, 110); // brighter fog + longer visibility
             
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
             camera.position.set(0, 38, 45);
@@ -194,11 +189,17 @@
             
             clock = new THREE.Clock();
             
-            // Horror lighting
-            ambientLight = new THREE.AmbientLight(0x112233, 0.15);
+            // === IMPROVED LIGHTING ===
+            // Strong ambient light for overall brightness
+            ambientLight = new THREE.AmbientLight(0x335577, 0.65);
             scene.add(ambientLight);
             
-            dirLight = new THREE.DirectionalLight(0xeedd99, 0.45);
+            // Hemisphere light (sky + ground) for natural, clear illumination
+            hemiLight = new THREE.HemisphereLight(0x445577, CONFIG.FLOOR_COLOR, 0.55);
+            scene.add(hemiLight);
+            
+            // Main directional light - much brighter and warmer
+            dirLight = new THREE.DirectionalLight(0xffeecc, 1.25);
             dirLight.position.set(25, 40, 20);
             dirLight.castShadow = true;
             dirLight.shadow.mapSize.width = 1024;
@@ -211,19 +212,19 @@
             dirLight.shadow.camera.bottom = -30;
             scene.add(dirLight);
             
-            // Extra eerie red point light (flickers subtly)
-            const redLight = new THREE.PointLight(0xff1122, 0.6, 80);
+            // Eerie red point light - slightly brighter but not overpowering
+            redLight = new THREE.PointLight(0xff2233, 0.85, 80);
             redLight.position.set(15, 12, -15);
             scene.add(redLight);
             
-            // Floor - blood-stained concrete look
+            // Floor
             const floorGeo = new THREE.PlaneGeometry(
                 CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 12,
                 CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 12
             );
             const floorMat = new THREE.MeshStandardMaterial({
                 color: CONFIG.FLOOR_COLOR,
-                roughness: 0.95,
+                roughness: 0.9,
                 metalness: 0.1
             });
             const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -232,8 +233,8 @@
             floor.receiveShadow = true;
             scene.add(floor);
             
-            // Arena walls (cracked, blood-stained)
-            arenaHalf = (CONFIG.GRID_SIZE * CONFIG.CELL_SIZE) / 2;
+            // Arena walls
+            const arenaHalf = (CONFIG.GRID_SIZE * CONFIG.CELL_SIZE) / 2;
             const wallMat = new THREE.MeshStandardMaterial({
                 color: CONFIG.WALL_COLOR,
                 roughness: 1,
@@ -242,7 +243,6 @@
             const wallHeight = 8;
             const wallThickness = 1.2;
             
-            // Left & Right
             const sideGeo = new THREE.BoxGeometry(wallThickness, wallHeight, CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 4);
             const leftWall = new THREE.Mesh(sideGeo, wallMat);
             leftWall.position.set(-arenaHalf - wallThickness / 2, wallHeight / 2, 0);
@@ -254,7 +254,6 @@
             rightWall.position.x = arenaHalf + wallThickness / 2;
             scene.add(rightWall);
             
-            // Front & Back
             const endGeo = new THREE.BoxGeometry(CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 4, wallHeight, wallThickness);
             const backWall = new THREE.Mesh(endGeo, wallMat);
             backWall.position.set(0, wallHeight / 2, -arenaHalf - wallThickness / 2);
@@ -266,10 +265,10 @@
             frontWall.position.z = arenaHalf + wallThickness / 2;
             scene.add(frontWall);
             
-            // Background glowing eyes (creepy watchers)
+            // Background glowing eyes
             eyeMeshes = [];
             const eyeCountPerWall = 6;
-            // Left wall eyes
+            // Left wall
             for (let i = 0; i < eyeCountPerWall; i++) {
                 const eye = createEye();
                 eye.position.set(
@@ -280,7 +279,7 @@
                 scene.add(eye);
                 eyeMeshes.push(eye);
             }
-            // Right wall eyes
+            // Right wall
             for (let i = 0; i < eyeCountPerWall; i++) {
                 const eye = createEye();
                 eye.position.set(
@@ -291,7 +290,7 @@
                 scene.add(eye);
                 eyeMeshes.push(eye);
             }
-            // Back wall eyes
+            // Back wall
             for (let i = 0; i < eyeCountPerWall; i++) {
                 const eye = createEye();
                 eye.position.set(
@@ -303,10 +302,10 @@
                 eyeMeshes.push(eye);
             }
             
-            console.log('%c3D HORROR SNAKE initialized - ready for terror', 'color:#ff0000; font-family:monospace');
+            console.log('%c3D HORROR SNAKE - Brighter & Clearer Lighting Ready', 'color:#00ff88; font-family:monospace');
         }
 
-        // Initialize snake (modular - easy to change starting length or shape)
+        // Initialize snake
         function initSnake() {
             snakeMeshes.forEach(m => scene.remove(m));
             snakeMeshes = [];
@@ -326,14 +325,12 @@
                 snakeMeshes.push(segment);
             }
             
-            // Save initial previous grid for lerp system
             previousSnakeGrid = snakeGridPositions.map(pos => pos.clone());
-            
             direction = new THREE.Vector3(1, 0, 0);
             pendingDirection = null;
         }
 
-        // Spawn new food (horror "eye" that the snake eats)
+        // Spawn food
         function spawnFood() {
             if (foodMesh) scene.remove(foodMesh);
             
@@ -353,44 +350,36 @@
             
             foodGrid = pos;
             
-            // Spiky horror eye food
             foodMesh = new THREE.Mesh(
                 new THREE.IcosahedronGeometry(CONFIG.CELL_SIZE * 0.45, 1),
                 new THREE.MeshStandardMaterial({
                     color: 0xff1122,
                     emissive: 0xff0000,
-                    emissiveIntensity: 1.2,
-                    roughness: 0.3
+                    emissiveIntensity: 1.5,
+                    roughness: 0.2
                 })
             );
             foodMesh.position.copy(gridToWorld(foodGrid));
             foodMesh.castShadow = true;
             scene.add(foodMesh);
-            
-            // Slight rotation animation will be handled in animate loop
         }
 
-        // Core move logic (collision + growth + horror trigger)
+        // Core move logic
         function moveSnake() {
             if (gameOver) return;
             
-            // Apply pending direction (prevents instant reversal)
             if (pendingDirection) {
-                // Only allow if not opposite
                 if (!pendingDirection.clone().multiplyScalar(-1).equals(direction)) {
                     direction.copy(pendingDirection);
                 }
                 pendingDirection = null;
             }
             
-            // Save current grid as "from" for smooth lerp
             const oldGrid = snakeGridPositions.map(pos => pos.clone());
             
-            // Calculate new head position
             const head = snakeGridPositions[0];
             const newHead = head.clone().add(direction);
             
-            // === COLLISION DETECTION ===
             const outOfBounds = 
                 newHead.x < 0 || newHead.x >= CONFIG.GRID_SIZE ||
                 newHead.z < 0 || newHead.z >= CONFIG.GRID_SIZE;
@@ -404,43 +393,35 @@
                 return;
             }
             
-            // Add new head
             snakeGridPositions.unshift(newHead);
             
-            // Check if ate food
             const ate = foodGrid && newHead.x === foodGrid.x && newHead.z === foodGrid.z;
             
             if (ate) {
                 score++;
                 document.getElementById('score').textContent = score;
-                
-                // HORROR JUMP-SCARE
                 triggerJumpScare();
-                
                 spawnFood();
             } else {
                 snakeGridPositions.pop();
             }
             
-            // Sync mesh count (grow only when eating)
             while (snakeMeshes.length < snakeGridPositions.length) {
                 const tailGrid = snakeGridPositions[snakeGridPositions.length - 1];
-                const newSegment = createSegmentMesh(false); // body segment
+                const newSegment = createSegmentMesh(false);
                 newSegment.position.copy(gridToWorld(tailGrid));
                 scene.add(newSegment);
                 snakeMeshes.push(newSegment);
             }
             
-            // Update previous grid for lerp (handles growth correctly)
             previousSnakeGrid = oldGrid;
             if (snakeGridPositions.length > previousSnakeGrid.length) {
                 previousSnakeGrid.push(previousSnakeGrid[previousSnakeGrid.length - 1].clone());
             }
         }
 
-        // Jump-scare on eating food (flash + camera shake + red pulse)
+        // Jump-scare
         function triggerJumpScare() {
-            // Screen flash
             const flashEl = document.getElementById('flash');
             flashEl.style.transition = 'none';
             flashEl.style.opacity = '0.75';
@@ -449,46 +430,38 @@
                 flashEl.style.opacity = '0';
             }, 10);
             
-            // Camera shake
             shakeIntensity = 1.8;
             shakeDecay = 0.12;
             
-            // Light pulse (extra terror)
-            dirLight.intensity = 2.5;
-            setTimeout(() => { if (!gameOver) dirLight.intensity = 0.45; }, 80);
+            dirLight.intensity = 2.8;
+            setTimeout(() => { if (!gameOver) dirLight.intensity = 1.25; }, 80);
             
-            // Optional: distort head slightly
             if (snakeMeshes[0]) {
                 snakeMeshes[0].scale.set(1.4, 1.4, 1.4);
                 setTimeout(() => {
                     if (snakeMeshes[0]) snakeMeshes[0].scale.set(1, 1, 1);
                 }, 120);
             }
-            
-            // TODO: Add real horror audio here (scream / heartbeat)
-            // Example: new Audio('horror-scream.mp3').play();
         }
 
-        // Game over sequence
+        // Game over
         function triggerGameOver() {
             gameOver = true;
             document.getElementById('gameOver').style.display = 'block';
             
-            // Final horror effect: red fog + camera tilt
             scene.fog.color.setHex(0x330000);
             camera.position.y += 8;
             camera.lookAt(0, -5, 0);
             
-            // Make snake body glow red briefly
-            snakeMeshes.forEach((mesh, i) => {
+            snakeMeshes.forEach((mesh) => {
                 if (mesh.material) {
                     mesh.material.emissive = new THREE.Color(0xff0000);
-                    mesh.material.emissiveIntensity = 2;
+                    mesh.material.emissiveIntensity = 2.5;
                 }
             });
         }
 
-        // Keyboard controls (arrow + WASD)
+        // Keyboard controls
         function setupControls() {
             document.addEventListener('keydown', (e) => {
                 if (gameOver) {
@@ -525,7 +498,7 @@
             });
         }
 
-        // Reset / restart game
+        // Reset game
         function resetGame() {
             gameOver = false;
             score = 0;
@@ -537,25 +510,22 @@
             spawnFood();
             lastMoveTime = Date.now();
             
-            // Reset camera
             camera.position.set(0, 38, 45);
             camera.lookAt(0, 0, 0);
         }
 
-        // Main animation loop (efficient, fixed timestep + smooth lerp)
+        // Main animation loop
         function animate() {
             requestAnimationFrame(animate);
             
             const time = clock.getElapsedTime();
             const currentTime = Date.now();
             
-            // Fixed timestep movement
             if (!gameOver && currentTime - lastMoveTime > MOVE_INTERVAL) {
                 moveSnake();
                 lastMoveTime = currentTime;
             }
             
-            // Smooth lerp for all segments (gives fluid snake movement)
             const progress = Math.min((currentTime - lastMoveTime) / MOVE_INTERVAL, 1);
             for (let i = 0; i < snakeMeshes.length; i++) {
                 if (!previousSnakeGrid[i] || !snakeGridPositions[i]) continue;
@@ -566,21 +536,19 @@
                 const lerpedPos = from.clone().lerp(to, progress);
                 snakeMeshes[i].position.copy(lerpedPos);
                 
-                // Head always faces movement direction
                 if (i === 0 && snakeMeshes[0]) {
                     snakeMeshes[0].rotation.y = Math.atan2(direction.x, direction.z);
                 }
             }
             
-            // Animate food (pulsing horror eye)
             if (foodMesh) {
                 foodMesh.rotation.y = time * 2.5;
                 const pulse = 1 + Math.sin(time * 8) * 0.15;
                 foodMesh.scale.setScalar(pulse);
             }
             
-            // Eerie flickering light + eye pulse
-            dirLight.intensity = 0.45 + Math.sin(time * 12) * 0.12;
+            // Brighter flickering directional light
+            dirLight.intensity = 1.25 + Math.sin(time * 12) * 0.22;
             
             // Pulse background eyes
             eyeMeshes.forEach((eye, i) => {
@@ -588,7 +556,7 @@
                 eye.scale.setScalar(scale);
             });
             
-            // Camera shake on jump-scare
+            // Camera shake
             if (shakeIntensity > 0) {
                 camera.position.x += (Math.random() - 0.5) * shakeIntensity;
                 camera.position.y += (Math.random() - 0.5) * shakeIntensity * 0.6;
@@ -600,7 +568,7 @@
             renderer.render(scene, camera);
         }
 
-        // Start the nightmare
+        // Start the game
         function startGame() {
             initScene();
             initSnake();
@@ -609,11 +577,9 @@
             lastMoveTime = Date.now();
             animate();
             
-            // Console message for modularity
-            console.log('%c✅ Horror Snake ready. Expand by editing CONFIG or adding new effects in triggerJumpScare()', 'color:#00ff88; background:#110022; padding:2px 6px');
+            console.log('%c✅ 3D HORROR SNAKE - Brighter & Clearer Lighting Active', 'color:#00ff88; background:#110022; padding:2px 6px');
         }
         
-        // Launch
         window.onload = startGame;
     </script>
 </body>
