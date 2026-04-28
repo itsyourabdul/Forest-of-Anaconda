@@ -12,13 +12,17 @@
             top: 20px;
             left: 20px;
             color: #ff0000;
-            text-shadow: 0 0 10px #ff0000;
+            text-shadow: 0 0 12px #ff0000, 0 0 24px #800000;
             font-size: 28px;
             pointer-events: none;
             z-index: 100;
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 18px;
+            letter-spacing: 2px;
+        }
+        #ui span {
+            font-weight: bold;
         }
         #gameOver {
             position: absolute;
@@ -32,6 +36,21 @@
             text-align: center;
             z-index: 200;
             pointer-events: none;
+            line-height: 1.1;
+        }
+        #pause {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ffcc00;
+            font-size: 68px;
+            text-shadow: 0 0 20px #ffcc00, 0 0 40px #aa8800;
+            display: none;
+            text-align: center;
+            z-index: 200;
+            pointer-events: none;
+            line-height: 1.1;
         }
         #flash {
             position: absolute;
@@ -51,35 +70,43 @@
             left: 20px;
             color: #660000;
             font-size: 14px;
-            text-shadow: 0 0 5px #ff0000;
+            text-shadow: 0 0 8px #ff0000;
             z-index: 100;
+            opacity: 0.85;
         }
     </style>
 </head>
 <body>
     <div id="ui">
         SCORE: <span id="score">0</span>
+        LENGTH: <span id="length">6</span>
         <span style="font-size:22px; opacity:0.8;">|</span>
         HIGH SCORE: <span id="highScore">0</span>
     </div>
     <div id="gameOver">
         YOU DIED<br>
+        <span id="finalScoreDisplay" style="font-size: 34px; display: block; margin: 12px 0 8px;">FINAL SCORE: 0</span>
         <span style="font-size: 24px;">PRESS R TO RESTART</span>
+    </div>
+    <div id="pause">
+        PAUSED<br>
+        <span style="font-size: 24px;">PRESS P TO RESUME</span>
     </div>
     <div id="flash"></div>
     <div id="instructions">
-        ARROW KEYS or WASD • EAT THE EYES • SURVIVE THE FOREST
+        ARROW KEYS or WASD • EAT THE EYES • SURVIVE THE FOREST • P: PAUSE
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script>
         // =============================================
-        // 3D HORROR SNAKE - Realistic Forest Edition (Fixed & Easy to Play)
-        // • All bugs fixed (eye positions, resize, controls)
-        // • Slower starting speed = easier to play
-        // • Fullscreen on any device/screen size
-        // • No page scrolling on arrow keys
-        // • Smoother & more stable
+        // 3D HORROR SNAKE - ULTRA SMOOTH Forest Edition
+        // • Fewer trees (less visual obstruction)
+        // • New snake-like serpent stones
+        // • Progressive speed increase
+        // • Pause system + improved UI/UX
+        // • Rounder snake body + better interpolation
+        // • Smoother lighting & camera shake
         // =============================================
 
         let scene, camera, renderer;
@@ -91,11 +118,12 @@
         let direction = new THREE.Vector3(1, 0, 0);
         let pendingDirection = null;
         let gameOver = false;
+        let paused = false;
         let score = 0;
         let highScore = parseInt(localStorage.getItem('horrorSnakeHighScore') || '0');
         let lastMoveTime = 0;
         let clock;
-        let MOVE_INTERVAL = 200; // SLOWER = easier to play (was 160)
+        let MOVE_INTERVAL = 200; // starting speed (easy & smooth)
 
         // Horror elements
         let dirLight, ambientLight, hemiLight, redLight;
@@ -126,63 +154,60 @@
             );
         }
 
-        // Create a single snake segment - MORE REALISTIC
+        // Create a single snake segment - ULTRA SMOOTH & ROUND
         function createSegmentMesh(isHead = false) {
             let mesh;
             
             if (isHead) {
-                // Realistic head: longer box (elongated forward), darker green
                 const geometry = new THREE.BoxGeometry(
                     CONFIG.CELL_SIZE * 0.88, 
                     CONFIG.CELL_SIZE * 0.92, 
-                    CONFIG.CELL_SIZE * 1.35   // longer in forward axis
+                    CONFIG.CELL_SIZE * 1.35
                 );
                 
                 const material = new THREE.MeshStandardMaterial({
                     color: CONFIG.HEAD_COLOR,
                     emissive: CONFIG.BODY_EMISSIVE,
-                    emissiveIntensity: 0.9,
-                    roughness: 0.5,
-                    metalness: 0.3
+                    emissiveIntensity: 1.0,
+                    roughness: 0.4,
+                    metalness: 0.35
                 });
                 
                 mesh = new THREE.Mesh(geometry, material);
                 mesh.castShadow = true;
                 mesh.receiveShadow = true;
                 
-                // FIXED: Red glowing eyes (proper left/right placement)
-                const eyeGeo = new THREE.SphereGeometry(0.27, 8, 8);
+                // Red glowing eyes
+                const eyeGeo = new THREE.SphereGeometry(0.27, 12, 12);
                 const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
                 
                 const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-                leftEye.position.set(0.38, 0.38, 0.48);   // left side, near front
+                leftEye.position.set(0.38, 0.38, 0.48);
                 mesh.add(leftEye);
                 
                 const rightEye = leftEye.clone();
-                rightEye.position.set(-0.38, 0.38, 0.48); // right side, near front
+                rightEye.position.set(-0.38, 0.38, 0.48);
                 mesh.add(rightEye);
             } else {
-                // Realistic body: smooth cylinder (looks like real snake segments)
+                // Ultra-smooth cylindrical body (more segments = rounder)
                 const geometry = new THREE.CylinderGeometry(
-                    CONFIG.CELL_SIZE * 0.38,  // top radius
-                    CONFIG.CELL_SIZE * 0.42,  // bottom radius (slightly tapered)
-                    CONFIG.CELL_SIZE * 0.92,  // length
-                    16                        // smooth roundness
+                    CONFIG.CELL_SIZE * 0.38,
+                    CONFIG.CELL_SIZE * 0.42,
+                    CONFIG.CELL_SIZE * 0.92,
+                    24
                 );
                 
                 const material = new THREE.MeshStandardMaterial({
                     color: CONFIG.SNAKE_COLOR,
                     emissive: CONFIG.BODY_EMISSIVE,
-                    emissiveIntensity: 0.45,
-                    roughness: 0.45,
-                    metalness: 0.1
+                    emissiveIntensity: 0.55,
+                    roughness: 0.4,
+                    metalness: 0.15
                 });
                 
                 mesh = new THREE.Mesh(geometry, material);
                 mesh.castShadow = true;
                 mesh.receiveShadow = true;
-                
-                // Rotate cylinder to lie horizontally along +Z (will be rotated per segment later)
                 mesh.rotation.x = Math.PI / 2;
             }
             
@@ -192,7 +217,7 @@
         // Create glowing background eye
         function createEye() {
             const eye = new THREE.Mesh(
-                new THREE.SphereGeometry(0.25, 6, 6),
+                new THREE.SphereGeometry(0.25, 8, 8),
                 new THREE.MeshBasicMaterial({
                     color: CONFIG.EYE_GLOW,
                     transparent: true,
@@ -213,11 +238,10 @@
             return eye;
         }
 
-        // Create realistic forest tree
+        // Realistic forest tree (kept but reduced count)
         function createTree() {
             const group = new THREE.Group();
             
-            // Trunk (dark bark for horror forest)
             const trunkGeometry = new THREE.CylinderGeometry(0.35, 0.55, 5.2, 6);
             const trunkMaterial = new THREE.MeshStandardMaterial({
                 color: 0x3c2a1f,
@@ -230,7 +254,6 @@
             trunk.receiveShadow = true;
             group.add(trunk);
             
-            // Foliage - 3 layered cones (dark, ominous green)
             const foliageMaterial = new THREE.MeshStandardMaterial({
                 color: 0x0d2e0d,
                 roughness: 0.9,
@@ -256,6 +279,67 @@
             return group;
         }
 
+        // NEW: Snake-like serpent stone (twisted horror pillar)
+        function createSerpentStone() {
+            const group = new THREE.Group();
+            
+            // Heavy base stone
+            const baseGeo = new THREE.CylinderGeometry(1.1, 1.45, 1.9, 8);
+            const baseMat = new THREE.MeshStandardMaterial({
+                color: 0x444444,
+                roughness: 1,
+                metalness: 0.1
+            });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.position.y = 0.95;
+            base.castShadow = true;
+            base.receiveShadow = true;
+            group.add(base);
+            
+            // Twisted snake body (9 segments with organic twist)
+            const stoneMat = new THREE.MeshStandardMaterial({
+                color: 0x2f2f2f,
+                roughness: 0.95,
+                metalness: 0.05
+            });
+            
+            for (let i = 0; i < 9; i++) {
+                const radius = 0.58 - (i * 0.035);
+                const seg = new THREE.Mesh(
+                    new THREE.CylinderGeometry(radius, radius + 0.04, 1.08, 9),
+                    stoneMat
+                );
+                seg.position.y = 2.0 + i * 0.96;
+                
+                // Organic snake-like twist
+                const twist = Math.sin(i * 1.15) * 0.72;
+                seg.rotation.z = twist;
+                seg.rotation.x = Math.cos(i * 0.85) * 0.38;
+                
+                seg.castShadow = true;
+                seg.receiveShadow = true;
+                group.add(seg);
+            }
+            
+            // Serpent "head" at top
+            const head = new THREE.Mesh(
+                new THREE.SphereGeometry(0.68, 8, 8),
+                stoneMat
+            );
+            head.position.y = 2.0 + 9 * 0.96 + 0.3;
+            head.castShadow = true;
+            group.add(head);
+            
+            // Tiny glowing eye on the head (extra creepy)
+            const eyeGeo = new THREE.SphereGeometry(0.16, 8, 8);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: CONFIG.EYE_GLOW });
+            const stoneEye = new THREE.Mesh(eyeGeo, eyeMat);
+            stoneEye.position.set(0.32, head.position.y + 0.18, 0.25);
+            group.add(stoneEye);
+            
+            return group;
+        }
+
         // Initialize Three.js scene
         function initScene() {
             scene = new THREE.Scene();
@@ -274,39 +358,39 @@
             
             clock = new THREE.Clock();
             
-            // === LIGHTING (kept bright & clear for visibility while horror) ===
-            ambientLight = new THREE.AmbientLight(0x335577, 0.65);
+            // Lighting (brighter + smoother flicker)
+            ambientLight = new THREE.AmbientLight(0x335577, 0.68);
             scene.add(ambientLight);
             
-            hemiLight = new THREE.HemisphereLight(0x445577, CONFIG.FLOOR_COLOR, 0.55);
+            hemiLight = new THREE.HemisphereLight(0x445577, CONFIG.FLOOR_COLOR, 0.58);
             scene.add(hemiLight);
             
-            dirLight = new THREE.DirectionalLight(0xffeecc, 1.25);
+            dirLight = new THREE.DirectionalLight(0xffeecc, 1.3);
             dirLight.position.set(25, 40, 20);
             dirLight.castShadow = true;
             dirLight.shadow.mapSize.width = 1024;
             dirLight.shadow.mapSize.height = 1024;
             dirLight.shadow.camera.near = 1;
             dirLight.shadow.camera.far = 100;
-            dirLight.shadow.camera.left = -40;
-            dirLight.shadow.camera.right = 40;
-            dirLight.shadow.camera.top = 40;
-            dirLight.shadow.camera.bottom = -40;
+            dirLight.shadow.camera.left = -42;
+            dirLight.shadow.camera.right = 42;
+            dirLight.shadow.camera.top = 42;
+            dirLight.shadow.camera.bottom = -42;
             scene.add(dirLight);
             
-            redLight = new THREE.PointLight(0xff2233, 0.85, 80);
+            redLight = new THREE.PointLight(0xff2233, 0.9, 80);
             redLight.position.set(15, 12, -15);
             scene.add(redLight);
             
             // Large forest floor
             const floorGeo = new THREE.PlaneGeometry(
-                CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 68,
-                CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 68
+                CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 72,
+                CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 72
             );
             const floorMat = new THREE.MeshStandardMaterial({
                 color: CONFIG.FLOOR_COLOR,
-                roughness: 0.9,
-                metalness: 0.1
+                roughness: 0.88,
+                metalness: 0.12
             });
             const floor = new THREE.Mesh(floorGeo, floorMat);
             floor.rotation.x = -Math.PI / 2;
@@ -314,48 +398,33 @@
             floor.receiveShadow = true;
             scene.add(floor);
             
-            // Arena size reference (used for eyes only - walls removed)
             const arenaHalf = (CONFIG.GRID_SIZE * CONFIG.CELL_SIZE) / 2;
             
-            // Background glowing eyes (now floating in the dark forest - extra creepy)
+            // Background glowing eyes
             eyeMeshes = [];
             const eyeCountPerWall = 6;
-            // Left side
+            // Left / Right / Back eyes
             for (let i = 0; i < eyeCountPerWall; i++) {
                 const eye = createEye();
-                eye.position.set(
-                    -arenaHalf - 2,
-                    3 + Math.random() * 4,
-                    -arenaHalf + 4 + (i * (arenaHalf * 2 / (eyeCountPerWall - 1)))
-                );
+                eye.position.set(-arenaHalf - 2, 3 + Math.random() * 4, -arenaHalf + 4 + (i * (arenaHalf * 2 / (eyeCountPerWall - 1))));
                 scene.add(eye);
                 eyeMeshes.push(eye);
             }
-            // Right side
             for (let i = 0; i < eyeCountPerWall; i++) {
                 const eye = createEye();
-                eye.position.set(
-                    arenaHalf + 2,
-                    3 + Math.random() * 4,
-                    -arenaHalf + 4 + (i * (arenaHalf * 2 / (eyeCountPerWall - 1)))
-                );
+                eye.position.set(arenaHalf + 2, 3 + Math.random() * 4, -arenaHalf + 4 + (i * (arenaHalf * 2 / (eyeCountPerWall - 1))));
                 scene.add(eye);
                 eyeMeshes.push(eye);
             }
-            // Back side
             for (let i = 0; i < eyeCountPerWall; i++) {
                 const eye = createEye();
-                eye.position.set(
-                    -arenaHalf + 4 + (i * (arenaHalf * 2 / (eyeCountPerWall - 1))),
-                    3 + Math.random() * 4,
-                    -arenaHalf - 2
-                );
+                eye.position.set(-arenaHalf + 4 + (i * (arenaHalf * 2 / (eyeCountPerWall - 1))), 3 + Math.random() * 4, -arenaHalf - 2);
                 scene.add(eye);
                 eyeMeshes.push(eye);
             }
             
-            // === ADD FOREST TREES ===
-            const numTrees = 28;
+            // === FOREST TREES (reduced from 28 to 20 = fewer obstructions) ===
+            const numTrees = 20;
             const treeSpread = CONFIG.GRID_SIZE * CONFIG.CELL_SIZE * 1.9;
             for (let i = 0; i < numTrees; i++) {
                 const tree = createTree();
@@ -366,7 +435,18 @@
                 scene.add(tree);
             }
             
-            // FIXED: Fullscreen resize support
+            // === NEW: SNAKE-LIKE SERPENT STONES ===
+            const numSerpentStones = 8;
+            for (let i = 0; i < numSerpentStones; i++) {
+                const stone = createSerpentStone();
+                const x = (Math.random() - 0.5) * treeSpread * 0.82;
+                const z = (Math.random() - 0.5) * treeSpread * 0.82;
+                stone.position.set(x, 0, z);
+                stone.rotation.y = Math.random() * Math.PI * 2;
+                scene.add(stone);
+            }
+            
+            // Fullscreen resize
             const handleResize = () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
@@ -374,7 +454,7 @@
             };
             window.addEventListener('resize', handleResize);
             
-            console.log('%c3D HORROR SNAKE - Realistic Forest Edition Ready', 'color:#00ff88; font-family:monospace');
+            console.log('%c3D HORROR SNAKE - ULTRA SMOOTH Edition Ready', 'color:#00ff88; font-family:monospace');
         }
 
         // Initialize snake
@@ -400,6 +480,9 @@
             previousSnakeGrid = snakeGridPositions.map(pos => pos.clone());
             direction = new THREE.Vector3(1, 0, 0);
             pendingDirection = null;
+            
+            // Update length UI
+            document.getElementById('length').textContent = snakeGridPositions.length;
         }
 
         // Spawn food
@@ -427,7 +510,7 @@
                 new THREE.MeshStandardMaterial({
                     color: 0xff1122,
                     emissive: 0xff0000,
-                    emissiveIntensity: 1.5,
+                    emissiveIntensity: 1.6,
                     roughness: 0.2
                 })
             );
@@ -436,9 +519,9 @@
             scene.add(foodMesh);
         }
 
-        // Core move logic (walls removed - only invisible grid bounds remain)
+        // Core move logic
         function moveSnake() {
-            if (gameOver) return;
+            if (gameOver || paused) return;
             
             if (pendingDirection) {
                 if (!pendingDirection.clone().multiplyScalar(-1).equals(direction)) {
@@ -474,10 +557,19 @@
                 document.getElementById('score').textContent = score;
                 triggerJumpScare();
                 spawnFood();
+                
+                // PROGRESSIVE SPEED (every 5 eyes = faster & harder)
+                if (score % 5 === 0) {
+                    MOVE_INTERVAL = Math.max(82, MOVE_INTERVAL - 16);
+                }
+                
+                // Update length UI
+                document.getElementById('length').textContent = snakeGridPositions.length;
             } else {
                 snakeGridPositions.pop();
             }
             
+            // Add missing meshes (growth)
             while (snakeMeshes.length < snakeGridPositions.length) {
                 const tailGrid = snakeGridPositions[snakeGridPositions.length - 1];
                 const newSegment = createSegmentMesh(false);
@@ -496,30 +588,32 @@
         function triggerJumpScare() {
             const flashEl = document.getElementById('flash');
             flashEl.style.transition = 'none';
-            flashEl.style.opacity = '0.75';
+            flashEl.style.opacity = '0.78';
             setTimeout(() => {
-                flashEl.style.transition = 'opacity 120ms ease-out';
+                flashEl.style.transition = 'opacity 110ms ease-out';
                 flashEl.style.opacity = '0';
-            }, 10);
+            }, 8);
             
-            shakeIntensity = 1.8;
-            shakeDecay = 0.12;
+            shakeIntensity = 2.0;
+            shakeDecay = 0.11;
             
-            dirLight.intensity = 2.8;
-            setTimeout(() => { if (!gameOver) dirLight.intensity = 1.25; }, 80);
+            dirLight.intensity = 3.0;
+            setTimeout(() => { if (!gameOver && !paused) dirLight.intensity = 1.3; }, 75);
             
             if (snakeMeshes[0]) {
-                snakeMeshes[0].scale.set(1.4, 1.4, 1.4);
+                snakeMeshes[0].scale.set(1.42, 1.42, 1.42);
                 setTimeout(() => {
                     if (snakeMeshes[0]) snakeMeshes[0].scale.set(1, 1, 1);
-                }, 120);
+                }, 110);
             }
         }
 
         // Game over
         function triggerGameOver() {
             gameOver = true;
-            document.getElementById('gameOver').style.display = 'block';
+            const go = document.getElementById('gameOver');
+            go.style.display = 'block';
+            document.getElementById('finalScoreDisplay').textContent = `FINAL SCORE: ${score}`;
             
             scene.fog.color.setHex(0x330000);
             camera.position.y += 8;
@@ -528,11 +622,10 @@
             snakeMeshes.forEach((mesh) => {
                 if (mesh.material) {
                     mesh.material.emissive = new THREE.Color(0xff0000);
-                    mesh.material.emissiveIntensity = 2.5;
+                    mesh.material.emissiveIntensity = 2.8;
                 }
             });
             
-            // Update high score
             if (score > highScore) {
                 highScore = score;
                 localStorage.setItem('horrorSnakeHighScore', highScore);
@@ -540,7 +633,7 @@
             }
         }
 
-        // Keyboard controls (fixed: no page scrolling)
+        // Keyboard controls (ultra responsive)
         function setupControls() {
             document.addEventListener('keydown', (e) => {
                 if (gameOver) {
@@ -548,6 +641,14 @@
                         resetGame();
                         e.preventDefault();
                     }
+                    return;
+                }
+                
+                // Pause
+                if (e.key.toLowerCase() === 'p') {
+                    paused = !paused;
+                    document.getElementById('pause').style.display = paused ? 'block' : 'none';
+                    e.preventDefault();
                     return;
                 }
                 
@@ -578,7 +679,7 @@
                 
                 if (newDir) {
                     pendingDirection = newDir;
-                    e.preventDefault(); // Prevents page scrolling
+                    e.preventDefault();
                 }
             });
         }
@@ -586,9 +687,14 @@
         // Reset game
         function resetGame() {
             gameOver = false;
+            paused = false;
             score = 0;
+            MOVE_INTERVAL = 200;
+            
             document.getElementById('score').textContent = '0';
+            document.getElementById('length').textContent = CONFIG.INITIAL_LENGTH;
             document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('pause').style.display = 'none';
             scene.fog.color.setHex(CONFIG.FOG_COLOR);
             
             initSnake();
@@ -599,21 +705,22 @@
             camera.lookAt(0, 0, 0);
         }
 
-        // Main animation loop
+        // Main animation loop (ultra smooth interpolation)
         function animate() {
             requestAnimationFrame(animate);
             
             const time = clock.getElapsedTime();
             const currentTime = Date.now();
             
-            if (!gameOver && currentTime - lastMoveTime > MOVE_INTERVAL) {
+            // Movement (respects pause)
+            if (!gameOver && !paused && currentTime - lastMoveTime > MOVE_INTERVAL) {
                 moveSnake();
                 lastMoveTime = currentTime;
             }
             
             const progress = Math.min((currentTime - lastMoveTime) / MOVE_INTERVAL, 1);
             
-            // Update snake with realistic body orientation
+            // Update snake positions with ultra-smooth lerp
             for (let i = 0; i < snakeMeshes.length; i++) {
                 if (!previousSnakeGrid[i] || !snakeGridPositions[i]) continue;
                 
@@ -623,12 +730,9 @@
                 const lerpedPos = from.clone().lerp(to, progress);
                 snakeMeshes[i].position.copy(lerpedPos);
                 
-                // Head faces movement direction
                 if (i === 0 && snakeMeshes[0]) {
                     snakeMeshes[0].rotation.y = Math.atan2(direction.x, direction.z);
-                } 
-                // Body segments face toward the segment in front of them (realistic snake curve)
-                else if (i > 0 && snakeGridPositions[i-1] && snakeGridPositions[i]) {
+                } else if (i > 0 && snakeGridPositions[i-1] && snakeGridPositions[i]) {
                     const dir = snakeGridPositions[i-1].clone().sub(snakeGridPositions[i]).normalize();
                     const angle = Math.atan2(dir.x, dir.z);
                     snakeMeshes[i].rotation.y = angle;
@@ -636,27 +740,27 @@
             }
             
             if (foodMesh) {
-                foodMesh.rotation.y = time * 2.5;
-                const pulse = 1 + Math.sin(time * 8) * 0.15;
+                foodMesh.rotation.y = time * 2.8;
+                const pulse = 1 + Math.sin(time * 9) * 0.18;
                 foodMesh.scale.setScalar(pulse);
             }
             
-            // Brighter flickering directional light
-            dirLight.intensity = 1.25 + Math.sin(time * 12) * 0.22;
+            // Smooth flickering light
+            dirLight.intensity = 1.3 + Math.sin(time * 14) * 0.25;
             
             // Pulse background eyes
             eyeMeshes.forEach((eye, i) => {
-                const scale = 1 + Math.sin(time * 6 + i) * 0.15;
+                const scale = 1 + Math.sin(time * 6.5 + i) * 0.16;
                 eye.scale.setScalar(scale);
             });
             
-            // Camera shake
+            // Camera shake (smoother decay)
             if (shakeIntensity > 0) {
-                camera.position.x += (Math.random() - 0.5) * shakeIntensity;
-                camera.position.y += (Math.random() - 0.5) * shakeIntensity * 0.6;
-                camera.position.z += (Math.random() - 0.5) * shakeIntensity * 0.4;
+                camera.position.x += (Math.random() - 0.5) * shakeIntensity * 1.1;
+                camera.position.y += (Math.random() - 0.5) * shakeIntensity * 0.65;
+                camera.position.z += (Math.random() - 0.5) * shakeIntensity * 0.45;
                 shakeIntensity *= (1 - shakeDecay);
-                if (shakeIntensity < 0.05) shakeIntensity = 0;
+                if (shakeIntensity < 0.04) shakeIntensity = 0;
             }
             
             renderer.render(scene, camera);
@@ -670,12 +774,11 @@
             setupControls();
             lastMoveTime = Date.now();
             
-            // Set initial high score display
             document.getElementById('highScore').textContent = highScore;
             
             animate();
             
-            console.log('%c✅ 3D HORROR SNAKE - Fixed & Easy to Play (Full display + slower speed)', 'color:#00ff88; background:#110022; padding:2px 6px');
+            console.log('%c✅ 3D HORROR SNAKE - ULTRA SMOOTH + New serpent stones + Pause + Progressive speed', 'color:#00ff88; background:#110022; padding:2px 8px');
         }
         
         window.onload = startGame;
