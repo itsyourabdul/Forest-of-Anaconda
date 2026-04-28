@@ -74,12 +74,90 @@
             z-index: 100;
             opacity: 0.85;
         }
+
+        /* Snake Selection Screen */
+        #snakeSelect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 0, 20, 0.98);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: #ff0000;
+            text-shadow: 0 0 12px #ff0000;
+            font-family: monospace;
+        }
+        .snake-option {
+            cursor: pointer;
+            width: 240px;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .snake-option:hover {
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body>
+    <!-- Snake Selection Screen (shown first) -->
+    <div id="snakeSelect">
+        <h1 style="font-size: 52px; margin-bottom: 10px; letter-spacing: 4px;">CHOOSE YOUR SERPENT</h1>
+        <p style="font-size: 22px; opacity: 0.8; margin-bottom: 40px; color: #ffcc88;">THE FOREST AWAITS YOUR HORROR...</p>
+        
+        <div style="display: flex; gap: 50px; justify-content: center;">
+            
+            <!-- Snake Type 1: Venom Green -->
+            <div onclick="chooseSnake(0)" class="snake-option" style="background: #112211; border: 6px solid #22aa22; box-shadow: 0 0 30px #22aa22;">
+                <div style="font-size: 28px; color: #22aa22; margin-bottom: 15px; font-weight: bold;">VENOM GREEN</div>
+                <div style="display:flex; justify-content:center; align-items:center; gap: 12px; margin-bottom:20px; height: 60px;">
+                    <div style="width:55px; height:55px; background:#22aa22; border-radius:12px; box-shadow:0 0 25px #00ff88;"></div>
+                    <div style="width:42px; height:42px; background:#0f4a0f; border-radius:50%; box-shadow:0 0 15px #002200;"></div>
+                    <div style="width:42px; height:42px; background:#0f4a0f; border-radius:50%; box-shadow:0 0 15px #002200;"></div>
+                    <div style="width:42px; height:42px; background:#0f4a0f; border-radius:50%; box-shadow:0 0 15px #002200;"></div>
+                </div>
+                <div style="color:#88ff88; font-size:15px;">Classic venomous terror</div>
+            </div>
+
+            <!-- Snake Type 2: Crimson Reaper -->
+            <div onclick="chooseSnake(1)" class="snake-option" style="background: #221111; border: 6px solid #cc2222; box-shadow: 0 0 30px #cc2222;">
+                <div style="font-size: 28px; color: #cc2222; margin-bottom: 15px; font-weight: bold;">CRIMSON REAPER</div>
+                <div style="display:flex; justify-content:center; align-items:center; gap: 12px; margin-bottom:20px; height: 60px;">
+                    <div style="width:55px; height:55px; background:#cc2222; border-radius:12px; box-shadow:0 0 25px #ff4444;"></div>
+                    <div style="width:42px; height:42px; background:#661111; border-radius:50%; box-shadow:0 0 15px #440000;"></div>
+                    <div style="width:42px; height:42px; background:#661111; border-radius:50%; box-shadow:0 0 15px #440000;"></div>
+                    <div style="width:42px; height:42px; background:#661111; border-radius:50%; box-shadow:0 0 15px #440000;"></div>
+                </div>
+                <div style="color:#ff8888; font-size:15px;">Bloodthirsty hunter</div>
+            </div>
+
+            <!-- Snake Type 3: Phantom Shadow -->
+            <div onclick="chooseSnake(2)" class="snake-option" style="background: #111122; border: 6px solid #4444aa; box-shadow: 0 0 30px #4444aa;">
+                <div style="font-size: 28px; color: #4444aa; margin-bottom: 15px; font-weight: bold;">PHANTOM SHADOW</div>
+                <div style="display:flex; justify-content:center; align-items:center; gap: 12px; margin-bottom:20px; height: 60px;">
+                    <div style="width:55px; height:55px; background:#4444aa; border-radius:12px; box-shadow:0 0 25px #88aaff;"></div>
+                    <div style="width:42px; height:42px; background:#222233; border-radius:50%; box-shadow:0 0 15px #000044;"></div>
+                    <div style="width:42px; height:42px; background:#222233; border-radius:50%; box-shadow:0 0 15px #000044;"></div>
+                    <div style="width:42px; height:42px; background:#222233; border-radius:50%; box-shadow:0 0 15px #000044;"></div>
+                </div>
+                <div style="color:#88aaff; font-size:15px;">Ethereal nightmare</div>
+            </div>
+
+        </div>
+
+        <div style="margin-top: 60px; font-size: 18px; opacity: 0.7;">
+            ARROW KEYS or WASD • EAT THE EYES • SURVIVE THE FOREST • P: PAUSE
+        </div>
+    </div>
+
     <div id="ui">
         SCORE: <span id="score">0</span>
-        LENGTH: <span id="length">6</span>
         <span style="font-size:22px; opacity:0.8;">|</span>
         HIGH SCORE: <span id="highScore">0</span>
     </div>
@@ -101,12 +179,9 @@
     <script>
         // =============================================
         // 3D HORROR SNAKE - ULTRA SMOOTH Forest Edition
-        // • Fewer trees (less visual obstruction)
-        // • New snake-like serpent stones
-        // • Progressive speed increase
-        // • Pause system + improved UI/UX
-        // • Rounder snake body + better interpolation
-        // • Smoother lighting & camera shake
+        // • Snake selection (3 unique horror serpents)
+        // • Length UI completely removed
+        // • Fully playable with improved UX
         // =============================================
 
         let scene, camera, renderer;
@@ -123,7 +198,10 @@
         let highScore = parseInt(localStorage.getItem('horrorSnakeHighScore') || '0');
         let lastMoveTime = 0;
         let clock;
-        let MOVE_INTERVAL = 200; // starting speed (easy & smooth)
+        let MOVE_INTERVAL = 200;
+
+        // Selected snake type (0 = Venom Green, 1 = Crimson Reaper, 2 = Phantom Shadow)
+        let selectedSnakeType = 0;
 
         // Horror elements
         let dirLight, ambientLight, hemiLight, redLight;
@@ -145,6 +223,34 @@
             INITIAL_LENGTH: 6
         };
 
+        // New: 3 unique snake types with distinct horror aesthetics
+        const SNAKE_TYPES = [
+            {
+                // 0 - Venom Green (original classic)
+                name: "VENOM GREEN",
+                headColor: 0x22aa22,
+                bodyColor: 0x0f4a0f,
+                bodyEmissive: 0x002200,
+                eyeColor: 0xff0000
+            },
+            {
+                // 1 - Crimson Reaper (blood theme)
+                name: "CRIMSON REAPER",
+                headColor: 0xcc2222,
+                bodyColor: 0x661111,
+                bodyEmissive: 0x220000,
+                eyeColor: 0x00ffdd
+            },
+            {
+                // 2 - Phantom Shadow (dark ethereal)
+                name: "PHANTOM SHADOW",
+                headColor: 0x4444aa,
+                bodyColor: 0x222233,
+                bodyEmissive: 0x000044,
+                eyeColor: 0xff8800
+            }
+        ];
+
         // Helper: convert grid coords to world position
         function gridToWorld(gridPos) {
             return new THREE.Vector3(
@@ -154,8 +260,10 @@
             );
         }
 
-        // Create a single snake segment - ULTRA SMOOTH & ROUND
-        function createSegmentMesh(isHead = false) {
+        // Create a single snake segment - now supports 3 different snake types
+        function createSegmentMesh(isHead = false, snakeType = 0) {
+            const config = SNAKE_TYPES[snakeType];
+            
             let mesh;
             
             if (isHead) {
@@ -166,8 +274,8 @@
                 );
                 
                 const material = new THREE.MeshStandardMaterial({
-                    color: CONFIG.HEAD_COLOR,
-                    emissive: CONFIG.BODY_EMISSIVE,
+                    color: config.headColor,
+                    emissive: config.bodyEmissive,
                     emissiveIntensity: 1.0,
                     roughness: 0.4,
                     metalness: 0.35
@@ -177,9 +285,9 @@
                 mesh.castShadow = true;
                 mesh.receiveShadow = true;
                 
-                // Red glowing eyes
+                // Glowing eyes - color varies by snake type
                 const eyeGeo = new THREE.SphereGeometry(0.27, 12, 12);
-                const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                const eyeMat = new THREE.MeshBasicMaterial({ color: config.eyeColor });
                 
                 const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
                 leftEye.position.set(0.38, 0.38, 0.48);
@@ -189,7 +297,7 @@
                 rightEye.position.set(-0.38, 0.38, 0.48);
                 mesh.add(rightEye);
             } else {
-                // Ultra-smooth cylindrical body (more segments = rounder)
+                // Ultra-smooth cylindrical body
                 const geometry = new THREE.CylinderGeometry(
                     CONFIG.CELL_SIZE * 0.38,
                     CONFIG.CELL_SIZE * 0.42,
@@ -198,8 +306,8 @@
                 );
                 
                 const material = new THREE.MeshStandardMaterial({
-                    color: CONFIG.SNAKE_COLOR,
-                    emissive: CONFIG.BODY_EMISSIVE,
+                    color: config.bodyColor,
+                    emissive: config.bodyEmissive,
                     emissiveIntensity: 0.55,
                     roughness: 0.4,
                     metalness: 0.15
@@ -238,7 +346,7 @@
             return eye;
         }
 
-        // Realistic forest tree (kept but reduced count)
+        // Realistic forest tree
         function createTree() {
             const group = new THREE.Group();
             
@@ -279,11 +387,10 @@
             return group;
         }
 
-        // NEW: Snake-like serpent stone (twisted horror pillar)
+        // NEW: Snake-like serpent stone
         function createSerpentStone() {
             const group = new THREE.Group();
             
-            // Heavy base stone
             const baseGeo = new THREE.CylinderGeometry(1.1, 1.45, 1.9, 8);
             const baseMat = new THREE.MeshStandardMaterial({
                 color: 0x444444,
@@ -296,7 +403,6 @@
             base.receiveShadow = true;
             group.add(base);
             
-            // Twisted snake body (9 segments with organic twist)
             const stoneMat = new THREE.MeshStandardMaterial({
                 color: 0x2f2f2f,
                 roughness: 0.95,
@@ -311,7 +417,6 @@
                 );
                 seg.position.y = 2.0 + i * 0.96;
                 
-                // Organic snake-like twist
                 const twist = Math.sin(i * 1.15) * 0.72;
                 seg.rotation.z = twist;
                 seg.rotation.x = Math.cos(i * 0.85) * 0.38;
@@ -321,7 +426,6 @@
                 group.add(seg);
             }
             
-            // Serpent "head" at top
             const head = new THREE.Mesh(
                 new THREE.SphereGeometry(0.68, 8, 8),
                 stoneMat
@@ -330,7 +434,6 @@
             head.castShadow = true;
             group.add(head);
             
-            // Tiny glowing eye on the head (extra creepy)
             const eyeGeo = new THREE.SphereGeometry(0.16, 8, 8);
             const eyeMat = new THREE.MeshBasicMaterial({ color: CONFIG.EYE_GLOW });
             const stoneEye = new THREE.Mesh(eyeGeo, eyeMat);
@@ -358,7 +461,7 @@
             
             clock = new THREE.Clock();
             
-            // Lighting (brighter + smoother flicker)
+            // Lighting
             ambientLight = new THREE.AmbientLight(0x335577, 0.68);
             scene.add(ambientLight);
             
@@ -403,7 +506,6 @@
             // Background glowing eyes
             eyeMeshes = [];
             const eyeCountPerWall = 6;
-            // Left / Right / Back eyes
             for (let i = 0; i < eyeCountPerWall; i++) {
                 const eye = createEye();
                 eye.position.set(-arenaHalf - 2, 3 + Math.random() * 4, -arenaHalf + 4 + (i * (arenaHalf * 2 / (eyeCountPerWall - 1))));
@@ -423,7 +525,7 @@
                 eyeMeshes.push(eye);
             }
             
-            // === FOREST TREES (reduced from 28 to 20 = fewer obstructions) ===
+            // Forest trees (reduced count)
             const numTrees = 20;
             const treeSpread = CONFIG.GRID_SIZE * CONFIG.CELL_SIZE * 1.9;
             for (let i = 0; i < numTrees; i++) {
@@ -435,7 +537,7 @@
                 scene.add(tree);
             }
             
-            // === NEW: SNAKE-LIKE SERPENT STONES ===
+            // Serpent stones
             const numSerpentStones = 8;
             for (let i = 0; i < numSerpentStones; i++) {
                 const stone = createSerpentStone();
@@ -446,7 +548,7 @@
                 scene.add(stone);
             }
             
-            // Fullscreen resize
+            // Resize handler
             const handleResize = () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
@@ -457,7 +559,7 @@
             console.log('%c3D HORROR SNAKE - ULTRA SMOOTH Edition Ready', 'color:#00ff88; font-family:monospace');
         }
 
-        // Initialize snake
+        // Initialize snake using currently selected type
         function initSnake() {
             snakeMeshes.forEach(m => scene.remove(m));
             snakeMeshes = [];
@@ -471,7 +573,7 @@
                 snakeGridPositions.push(gridPos);
                 
                 const isHead = (i === 0);
-                const segment = createSegmentMesh(isHead);
+                const segment = createSegmentMesh(isHead, selectedSnakeType);
                 segment.position.copy(gridToWorld(gridPos));
                 scene.add(segment);
                 snakeMeshes.push(segment);
@@ -480,9 +582,6 @@
             previousSnakeGrid = snakeGridPositions.map(pos => pos.clone());
             direction = new THREE.Vector3(1, 0, 0);
             pendingDirection = null;
-            
-            // Update length UI
-            document.getElementById('length').textContent = snakeGridPositions.length;
         }
 
         // Spawn food
@@ -519,7 +618,7 @@
             scene.add(foodMesh);
         }
 
-        // Core move logic
+        // Core move logic (length counter removed)
         function moveSnake() {
             if (gameOver || paused) return;
             
@@ -558,21 +657,18 @@
                 triggerJumpScare();
                 spawnFood();
                 
-                // PROGRESSIVE SPEED (every 5 eyes = faster & harder)
+                // Progressive speed increase
                 if (score % 5 === 0) {
                     MOVE_INTERVAL = Math.max(82, MOVE_INTERVAL - 16);
                 }
-                
-                // Update length UI
-                document.getElementById('length').textContent = snakeGridPositions.length;
             } else {
                 snakeGridPositions.pop();
             }
             
-            // Add missing meshes (growth)
+            // Add missing meshes (snake still grows)
             while (snakeMeshes.length < snakeGridPositions.length) {
                 const tailGrid = snakeGridPositions[snakeGridPositions.length - 1];
-                const newSegment = createSegmentMesh(false);
+                const newSegment = createSegmentMesh(false, selectedSnakeType);
                 newSegment.position.copy(gridToWorld(tailGrid));
                 scene.add(newSegment);
                 snakeMeshes.push(newSegment);
@@ -584,7 +680,7 @@
             }
         }
 
-        // Jump-scare
+        // Jump-scare on eat
         function triggerJumpScare() {
             const flashEl = document.getElementById('flash');
             flashEl.style.transition = 'none';
@@ -633,7 +729,7 @@
             }
         }
 
-        // Keyboard controls (ultra responsive)
+        // Keyboard controls
         function setupControls() {
             document.addEventListener('keydown', (e) => {
                 if (gameOver) {
@@ -684,7 +780,7 @@
             });
         }
 
-        // Reset game
+        // Reset game (keeps selected snake type)
         function resetGame() {
             gameOver = false;
             paused = false;
@@ -692,7 +788,6 @@
             MOVE_INTERVAL = 200;
             
             document.getElementById('score').textContent = '0';
-            document.getElementById('length').textContent = CONFIG.INITIAL_LENGTH;
             document.getElementById('gameOver').style.display = 'none';
             document.getElementById('pause').style.display = 'none';
             scene.fog.color.setHex(CONFIG.FOG_COLOR);
@@ -705,14 +800,13 @@
             camera.lookAt(0, 0, 0);
         }
 
-        // Main animation loop (ultra smooth interpolation)
+        // Main animation loop
         function animate() {
             requestAnimationFrame(animate);
             
             const time = clock.getElapsedTime();
             const currentTime = Date.now();
             
-            // Movement (respects pause)
             if (!gameOver && !paused && currentTime - lastMoveTime > MOVE_INTERVAL) {
                 moveSnake();
                 lastMoveTime = currentTime;
@@ -720,7 +814,7 @@
             
             const progress = Math.min((currentTime - lastMoveTime) / MOVE_INTERVAL, 1);
             
-            // Update snake positions with ultra-smooth lerp
+            // Ultra-smooth snake interpolation
             for (let i = 0; i < snakeMeshes.length; i++) {
                 if (!previousSnakeGrid[i] || !snakeGridPositions[i]) continue;
                 
@@ -745,16 +839,13 @@
                 foodMesh.scale.setScalar(pulse);
             }
             
-            // Smooth flickering light
             dirLight.intensity = 1.3 + Math.sin(time * 14) * 0.25;
             
-            // Pulse background eyes
             eyeMeshes.forEach((eye, i) => {
                 const scale = 1 + Math.sin(time * 6.5 + i) * 0.16;
                 eye.scale.setScalar(scale);
             });
             
-            // Camera shake (smoother decay)
             if (shakeIntensity > 0) {
                 camera.position.x += (Math.random() - 0.5) * shakeIntensity * 1.1;
                 camera.position.y += (Math.random() - 0.5) * shakeIntensity * 0.65;
@@ -766,7 +857,7 @@
             renderer.render(scene, camera);
         }
 
-        // Start the game
+        // Start the actual game (called after snake selection)
         function startGame() {
             initScene();
             initSnake();
@@ -778,10 +869,18 @@
             
             animate();
             
-            console.log('%c✅ 3D HORROR SNAKE - ULTRA SMOOTH + New serpent stones + Pause + Progressive speed', 'color:#00ff88; background:#110022; padding:2px 8px');
+            console.log('%c✅ 3D HORROR SNAKE - Selected: ' + SNAKE_TYPES[selectedSnakeType].name + ' | Fully playable', 'color:#00ff88; background:#110022; padding:2px 8px');
         }
-        
-        window.onload = startGame;
+
+        // Snake selection handler
+        window.chooseSnake = function(type) {
+            selectedSnakeType = type;
+            document.getElementById('snakeSelect').style.display = 'none';
+            startGame();
+        };
+
+        // Game starts only after player chooses a serpent
+        console.log('%c3D HORROR SNAKE ready - choose your serpent to begin', 'color:#ff8800; font-family:monospace');
     </script>
 </body>
 </html>
