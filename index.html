@@ -1,886 +1,295 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D HORROR SNAKE</title>
-    <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: monospace; }
-        canvas { display: block; }
-        #ui {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: #ff0000;
-            text-shadow: 0 0 12px #ff0000, 0 0 24px #800000;
-            font-size: 28px;
-            pointer-events: none;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            letter-spacing: 2px;
-        }
-        #ui span {
-            font-weight: bold;
-        }
-        #gameOver {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #ff0000;
-            font-size: 80px;
-            text-shadow: 0 0 20px #ff0000, 0 0 40px #800000;
-            display: none;
-            text-align: center;
-            z-index: 200;
-            pointer-events: none;
-            line-height: 1.1;
-        }
-        #pause {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #ffcc00;
-            font-size: 68px;
-            text-shadow: 0 0 20px #ffcc00, 0 0 40px #aa8800;
-            display: none;
-            text-align: center;
-            z-index: 200;
-            pointer-events: none;
-            line-height: 1.1;
-        }
-        #flash {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #ff0000;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 300;
-            transition: opacity 80ms ease-out;
-        }
-        #instructions {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            color: #660000;
-            font-size: 14px;
-            text-shadow: 0 0 8px #ff0000;
-            z-index: 100;
-            opacity: 0.85;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D HORROR SNAKE - SMOOTH</title>
 
-        /* Snake Selection Screen */
-        #snakeSelect {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(10, 0, 20, 0.98);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            color: #ff0000;
-            text-shadow: 0 0 12px #ff0000;
-            font-family: monospace;
-        }
-        .snake-option {
-            cursor: pointer;
-            width: 240px;
-            border-radius: 16px;
-            padding: 20px;
-            text-align: center;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .snake-option:hover {
-            transform: scale(1.05);
-        }
-    </style>
+<style>
+body { margin:0; overflow:hidden; background:#000; font-family:monospace; }
+canvas { display:block; }
+
+#ui {
+    position:absolute;
+    top:20px; left:20px;
+    color:#ff0000;
+    text-shadow:0 0 12px #ff0000;
+    font-size:26px;
+    display:flex; gap:12px;
+}
+#score { transition:transform 0.15s ease; }
+
+#snakeSelect {
+    position:absolute;
+    width:100%; height:100%;
+    background:#0a0014;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    color:#ff0000;
+}
+
+.snake-option {
+    cursor:pointer;
+    padding:20px;
+    margin:10px;
+    border:3px solid #ff0000;
+}
+.snake-option.selected {
+    background:#220000;
+}
+
+#startBtn {
+    margin-top:30px;
+    padding:12px 26px;
+    background:#ff0000;
+    border:none;
+    cursor:pointer;
+}
+
+#gameOver {
+    position:absolute;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    color:#ff0000;
+    font-size:60px;
+    display:none;
+}
+</style>
 </head>
+
 <body>
-    <!-- Snake Selection Screen (shown first) -->
-    <div id="snakeSelect">
-        <h1 style="font-size: 52px; margin-bottom: 10px; letter-spacing: 4px;">CHOOSE YOUR SERPENT</h1>
-        <p style="font-size: 22px; opacity: 0.8; margin-bottom: 40px; color: #ffcc88;">THE FOREST AWAITS YOUR HORROR...</p>
-        
-        <div style="display: flex; gap: 50px; justify-content: center;">
-            
-            <!-- Snake Type 1: Venom Green -->
-            <div onclick="chooseSnake(0)" class="snake-option" style="background: #112211; border: 6px solid #22aa22; box-shadow: 0 0 30px #22aa22;">
-                <div style="font-size: 28px; color: #22aa22; margin-bottom: 15px; font-weight: bold;">VENOM GREEN</div>
-                <div style="display:flex; justify-content:center; align-items:center; gap: 12px; margin-bottom:20px; height: 60px;">
-                    <div style="width:55px; height:55px; background:#22aa22; border-radius:12px; box-shadow:0 0 25px #00ff88;"></div>
-                    <div style="width:42px; height:42px; background:#0f4a0f; border-radius:50%; box-shadow:0 0 15px #002200;"></div>
-                    <div style="width:42px; height:42px; background:#0f4a0f; border-radius:50%; box-shadow:0 0 15px #002200;"></div>
-                    <div style="width:42px; height:42px; background:#0f4a0f; border-radius:50%; box-shadow:0 0 15px #002200;"></div>
-                </div>
-                <div style="color:#88ff88; font-size:15px;">Classic venomous terror</div>
-            </div>
 
-            <!-- Snake Type 2: Crimson Reaper -->
-            <div onclick="chooseSnake(1)" class="snake-option" style="background: #221111; border: 6px solid #cc2222; box-shadow: 0 0 30px #cc2222;">
-                <div style="font-size: 28px; color: #cc2222; margin-bottom: 15px; font-weight: bold;">CRIMSON REAPER</div>
-                <div style="display:flex; justify-content:center; align-items:center; gap: 12px; margin-bottom:20px; height: 60px;">
-                    <div style="width:55px; height:55px; background:#cc2222; border-radius:12px; box-shadow:0 0 25px #ff4444;"></div>
-                    <div style="width:42px; height:42px; background:#661111; border-radius:50%; box-shadow:0 0 15px #440000;"></div>
-                    <div style="width:42px; height:42px; background:#661111; border-radius:50%; box-shadow:0 0 15px #440000;"></div>
-                    <div style="width:42px; height:42px; background:#661111; border-radius:50%; box-shadow:0 0 15px #440000;"></div>
-                </div>
-                <div style="color:#ff8888; font-size:15px;">Bloodthirsty hunter</div>
-            </div>
-
-            <!-- Snake Type 3: Phantom Shadow -->
-            <div onclick="chooseSnake(2)" class="snake-option" style="background: #111122; border: 6px solid #4444aa; box-shadow: 0 0 30px #4444aa;">
-                <div style="font-size: 28px; color: #4444aa; margin-bottom: 15px; font-weight: bold;">PHANTOM SHADOW</div>
-                <div style="display:flex; justify-content:center; align-items:center; gap: 12px; margin-bottom:20px; height: 60px;">
-                    <div style="width:55px; height:55px; background:#4444aa; border-radius:12px; box-shadow:0 0 25px #88aaff;"></div>
-                    <div style="width:42px; height:42px; background:#222233; border-radius:50%; box-shadow:0 0 15px #000044;"></div>
-                    <div style="width:42px; height:42px; background:#222233; border-radius:50%; box-shadow:0 0 15px #000044;"></div>
-                    <div style="width:42px; height:42px; background:#222233; border-radius:50%; box-shadow:0 0 15px #000044;"></div>
-                </div>
-                <div style="color:#88aaff; font-size:15px;">Ethereal nightmare</div>
-            </div>
-
-        </div>
-
-        <div style="margin-top: 60px; font-size: 18px; opacity: 0.7;">
-            ARROW KEYS or WASD • EAT THE EYES • SURVIVE THE FOREST • P: PAUSE
-        </div>
+<div id="snakeSelect">
+    <h1>CHOOSE YOUR SERPENT</h1>
+    <div>
+        <div class="snake-option" onclick="chooseSnake(0)">VENOM</div>
+        <div class="snake-option" onclick="chooseSnake(1)">CRIMSON</div>
+        <div class="snake-option" onclick="chooseSnake(2)">PHANTOM</div>
     </div>
+    <button id="startBtn">START GAME</button>
+</div>
 
-    <div id="ui">
-        SCORE: <span id="score">0</span>
-        <span style="font-size:22px; opacity:0.8;">|</span>
-        HIGH SCORE: <span id="highScore">0</span>
-    </div>
-    <div id="gameOver">
-        YOU DIED<br>
-        <span id="finalScoreDisplay" style="font-size: 34px; display: block; margin: 12px 0 8px;">FINAL SCORE: 0</span>
-        <span style="font-size: 24px;">PRESS R TO RESTART</span>
-    </div>
-    <div id="pause">
-        PAUSED<br>
-        <span style="font-size: 24px;">PRESS P TO RESUME</span>
-    </div>
-    <div id="flash"></div>
-    <div id="instructions">
-        ARROW KEYS or WASD • EAT THE EYES • SURVIVE THE FOREST • P: PAUSE
-    </div>
+<div id="ui">
+    SCORE: <span id="score">0</span>
+</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-    <script>
-        // =============================================
-        // 3D HORROR SNAKE - ULTRA SMOOTH Forest Edition
-        // • Snake selection (3 unique horror serpents)
-        // • Length UI completely removed
-        // • Fully playable with improved UX
-        // =============================================
+<div id="gameOver">
+    YOU DIED<br>Press R
+</div>
 
-        let scene, camera, renderer;
-        let snakeMeshes = [];
-        let snakeGridPositions = [];
-        let previousSnakeGrid = [];
-        let foodMesh = null;
-        let foodGrid = null;
-        let direction = new THREE.Vector3(1, 0, 0);
-        let pendingDirection = null;
-        let gameOver = false;
-        let paused = false;
-        let score = 0;
-        let highScore = parseInt(localStorage.getItem('horrorSnakeHighScore') || '0');
-        let lastMoveTime = 0;
-        let clock;
-        let MOVE_INTERVAL = 200;
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
 
-        // Selected snake type (0 = Venom Green, 1 = Crimson Reaper, 2 = Phantom Shadow)
-        let selectedSnakeType = 0;
+<script>
+let scene, camera, renderer, clock;
 
-        // Horror elements
-        let dirLight, ambientLight, hemiLight, redLight;
-        let eyeMeshes = [];
+let snakeMeshes=[], snakeGrid=[], prevGrid=[];
+let foodMesh, foodGrid;
 
-        // Shake
-        let shakeIntensity = 0;
-        let shakeDecay = 0;
+let direction=new THREE.Vector3(1,0,0);
+let directionQueue=[];
 
-        const CONFIG = {
-            SNAKE_COLOR: 0x0f4a0f,
-            HEAD_COLOR: 0x22aa22,
-            BODY_EMISSIVE: 0x002200,
-            FLOOR_COLOR: 0x221133,
-            FOG_COLOR: 0x223355,
-            EYE_GLOW: 0x00ff88,
-            GRID_SIZE: 22,
-            CELL_SIZE: 2.2,
-            INITIAL_LENGTH: 6
-        };
+let selectedSnake=0;
+let chosen=false;
 
-        // New: 3 unique snake types with distinct horror aesthetics
-        const SNAKE_TYPES = [
-            {
-                // 0 - Venom Green (original classic)
-                name: "VENOM GREEN",
-                headColor: 0x22aa22,
-                bodyColor: 0x0f4a0f,
-                bodyEmissive: 0x002200,
-                eyeColor: 0xff0000
-            },
-            {
-                // 1 - Crimson Reaper (blood theme)
-                name: "CRIMSON REAPER",
-                headColor: 0xcc2222,
-                bodyColor: 0x661111,
-                bodyEmissive: 0x220000,
-                eyeColor: 0x00ffdd
-            },
-            {
-                // 2 - Phantom Shadow (dark ethereal)
-                name: "PHANTOM SHADOW",
-                headColor: 0x4444aa,
-                bodyColor: 0x222233,
-                bodyEmissive: 0x000044,
-                eyeColor: 0xff8800
-            }
-        ];
+let score=0;
+let MOVE_INTERVAL=200;
+let accumulator=0;
 
-        // Helper: convert grid coords to world position
-        function gridToWorld(gridPos) {
-            return new THREE.Vector3(
-                (gridPos.x - CONFIG.GRID_SIZE / 2 + 0.5) * CONFIG.CELL_SIZE,
-                0.5,
-                (gridPos.z - CONFIG.GRID_SIZE / 2 + 0.5) * CONFIG.CELL_SIZE
-            );
+const GRID=20;
+const CELL=2;
+
+const TYPES=[
+ {head:0x22aa22, body:0x0f4a0f},
+ {head:0xcc2222, body:0x661111},
+ {head:0x4444aa, body:0x222233}
+];
+
+function gridToWorld(p){
+    return new THREE.Vector3(
+        (p.x-GRID/2)*CELL,
+        0.5,
+        (p.z-GRID/2)*CELL
+    );
+}
+
+function createSegment(head=false){
+    let geo=head?
+        new THREE.BoxGeometry(1.6,1.6,2):
+        new THREE.CylinderGeometry(0.6,0.6,1.5,16);
+
+    let mat=new THREE.MeshStandardMaterial({
+        color: head?TYPES[selectedSnake].head:TYPES[selectedSnake].body
+    });
+
+    let m=new THREE.Mesh(geo,mat);
+    if(!head) m.rotation.x=Math.PI/2;
+    return m;
+}
+
+function init(){
+    scene=new THREE.Scene();
+    camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,1000);
+    renderer=new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(innerWidth,innerHeight);
+    renderer.shadowMap.enabled=true;
+    renderer.shadowMap.type=THREE.BasicShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    clock=new THREE.Clock();
+
+    let light=new THREE.DirectionalLight(0xffffff,1);
+    light.position.set(20,30,10);
+    scene.add(light);
+
+    let floor=new THREE.Mesh(
+        new THREE.PlaneGeometry(200,200),
+        new THREE.MeshStandardMaterial({color:0x111122})
+    );
+    floor.rotation.x=-Math.PI/2;
+    scene.add(floor);
+}
+
+function initSnake(){
+    snakeMeshes.forEach(m=>scene.remove(m));
+    snakeMeshes=[];
+    snakeGrid=[];
+
+    for(let i=0;i<6;i++){
+        let p=new THREE.Vector3(10-i,0,10);
+        snakeGrid.push(p);
+
+        let m=createSegment(i==0);
+        m.position.copy(gridToWorld(p));
+        scene.add(m);
+        snakeMeshes.push(m);
+    }
+    prevGrid=snakeGrid.map(p=>p.clone());
+}
+
+function spawnFood(){
+    foodGrid=new THREE.Vector3(
+        Math.floor(Math.random()*GRID),
+        0,
+        Math.floor(Math.random()*GRID)
+    );
+
+    if(foodMesh) scene.remove(foodMesh);
+
+    foodMesh=new THREE.Mesh(
+        new THREE.IcosahedronGeometry(0.8),
+        new THREE.MeshStandardMaterial({color:0xff0000})
+    );
+
+    foodMesh.position.copy(gridToWorld(foodGrid));
+    scene.add(foodMesh);
+}
+
+function move(){
+    if(directionQueue.length){
+        let next=directionQueue.shift();
+        if(!next.clone().multiplyScalar(-1).equals(direction)){
+            direction.copy(next);
         }
+    }
 
-        // Create a single snake segment - now supports 3 different snake types
-        function createSegmentMesh(isHead = false, snakeType = 0) {
-            const config = SNAKE_TYPES[snakeType];
-            
-            let mesh;
-            
-            if (isHead) {
-                const geometry = new THREE.BoxGeometry(
-                    CONFIG.CELL_SIZE * 0.88, 
-                    CONFIG.CELL_SIZE * 0.92, 
-                    CONFIG.CELL_SIZE * 1.35
-                );
-                
-                const material = new THREE.MeshStandardMaterial({
-                    color: config.headColor,
-                    emissive: config.bodyEmissive,
-                    emissiveIntensity: 1.0,
-                    roughness: 0.4,
-                    metalness: 0.35
-                });
-                
-                mesh = new THREE.Mesh(geometry, material);
-                mesh.castShadow = true;
-                mesh.receiveShadow = true;
-                
-                // Glowing eyes - color varies by snake type
-                const eyeGeo = new THREE.SphereGeometry(0.27, 12, 12);
-                const eyeMat = new THREE.MeshBasicMaterial({ color: config.eyeColor });
-                
-                const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-                leftEye.position.set(0.38, 0.38, 0.48);
-                mesh.add(leftEye);
-                
-                const rightEye = leftEye.clone();
-                rightEye.position.set(-0.38, 0.38, 0.48);
-                mesh.add(rightEye);
-            } else {
-                // Ultra-smooth cylindrical body
-                const geometry = new THREE.CylinderGeometry(
-                    CONFIG.CELL_SIZE * 0.38,
-                    CONFIG.CELL_SIZE * 0.42,
-                    CONFIG.CELL_SIZE * 0.92,
-                    24
-                );
-                
-                const material = new THREE.MeshStandardMaterial({
-                    color: config.bodyColor,
-                    emissive: config.bodyEmissive,
-                    emissiveIntensity: 0.55,
-                    roughness: 0.4,
-                    metalness: 0.15
-                });
-                
-                mesh = new THREE.Mesh(geometry, material);
-                mesh.castShadow = true;
-                mesh.receiveShadow = true;
-                mesh.rotation.x = Math.PI / 2;
-            }
-            
-            return mesh;
+    let newHead=snakeGrid[0].clone().add(direction);
+
+    if(newHead.x<0||newHead.x>=GRID||newHead.z<0||newHead.z>=GRID){
+        gameOver();
+        return;
+    }
+
+    snakeGrid.unshift(newHead);
+
+    let ate=newHead.x===foodGrid.x && newHead.z===foodGrid.z;
+
+    if(ate){
+        score++;
+        document.getElementById('score').textContent=score;
+        let s=document.getElementById('score');
+        s.style.transform='scale(1.4)';
+        setTimeout(()=>s.style.transform='scale(1)',120);
+
+        spawnFood();
+        MOVE_INTERVAL=Math.max(90,200-score*3);
+    } else {
+        snakeGrid.pop();
+    }
+
+    while(snakeMeshes.length<snakeGrid.length){
+        let m=createSegment(false);
+        scene.add(m);
+        snakeMeshes.push(m);
+    }
+
+    prevGrid=snakeGrid.map(p=>p.clone());
+}
+
+function animate(){
+    requestAnimationFrame(animate);
+
+    let delta=clock.getDelta()*1000;
+    accumulator+=delta;
+
+    while(accumulator>=MOVE_INTERVAL){
+        move();
+        accumulator-=MOVE_INTERVAL;
+    }
+
+    let progress=accumulator/MOVE_INTERVAL;
+
+    for(let i=0;i<snakeMeshes.length;i++){
+        let from=gridToWorld(prevGrid[i]||snakeGrid[i]);
+        let to=gridToWorld(snakeGrid[i]);
+
+        snakeMeshes[i].position.copy(from.lerp(to,progress));
+
+        if(i===0){
+            let head=snakeMeshes[0].position;
+            camera.position.lerp(new THREE.Vector3(head.x,15,head.z+20),0.08);
+            camera.lookAt(head);
         }
+    }
 
-        // Create glowing background eye
-        function createEye() {
-            const eye = new THREE.Mesh(
-                new THREE.SphereGeometry(0.25, 8, 8),
-                new THREE.MeshBasicMaterial({
-                    color: CONFIG.EYE_GLOW,
-                    transparent: true,
-                    opacity: 0.95
-                })
-            );
-            const ring = new THREE.Mesh(
-                new THREE.RingGeometry(0.28, 0.35, 8),
-                new THREE.MeshBasicMaterial({
-                    color: CONFIG.EYE_GLOW,
-                    side: THREE.DoubleSide,
-                    transparent: true,
-                    opacity: 0.5
-                })
-            );
-            ring.rotation.x = Math.PI / 2;
-            eye.add(ring);
-            return eye;
-        }
+    renderer.render(scene,camera);
+}
 
-        // Realistic forest tree
-        function createTree() {
-            const group = new THREE.Group();
-            
-            const trunkGeometry = new THREE.CylinderGeometry(0.35, 0.55, 5.2, 6);
-            const trunkMaterial = new THREE.MeshStandardMaterial({
-                color: 0x3c2a1f,
-                roughness: 1,
-                metalness: 0.05
-            });
-            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-            trunk.position.y = 2.6;
-            trunk.castShadow = true;
-            trunk.receiveShadow = true;
-            group.add(trunk);
-            
-            const foliageMaterial = new THREE.MeshStandardMaterial({
-                color: 0x0d2e0d,
-                roughness: 0.9,
-                metalness: 0
-            });
-            
-            const foliageData = [
-                { radius: 2.9, height: 3.6, y: 5.1 },
-                { radius: 2.2, height: 3.2, y: 7.4 },
-                { radius: 1.4, height: 2.8, y: 9.3 }
-            ];
-            
-            foliageData.forEach(data => {
-                const cone = new THREE.Mesh(
-                    new THREE.ConeGeometry(data.radius, data.height, 8),
-                    foliageMaterial
-                );
-                cone.position.y = data.y;
-                cone.castShadow = true;
-                group.add(cone);
-            });
-            
-            return group;
-        }
+function gameOver(){
+    document.getElementById('gameOver').style.display='block';
+}
 
-        // NEW: Snake-like serpent stone
-        function createSerpentStone() {
-            const group = new THREE.Group();
-            
-            const baseGeo = new THREE.CylinderGeometry(1.1, 1.45, 1.9, 8);
-            const baseMat = new THREE.MeshStandardMaterial({
-                color: 0x444444,
-                roughness: 1,
-                metalness: 0.1
-            });
-            const base = new THREE.Mesh(baseGeo, baseMat);
-            base.position.y = 0.95;
-            base.castShadow = true;
-            base.receiveShadow = true;
-            group.add(base);
-            
-            const stoneMat = new THREE.MeshStandardMaterial({
-                color: 0x2f2f2f,
-                roughness: 0.95,
-                metalness: 0.05
-            });
-            
-            for (let i = 0; i < 9; i++) {
-                const radius = 0.58 - (i * 0.035);
-                const seg = new THREE.Mesh(
-                    new THREE.CylinderGeometry(radius, radius + 0.04, 1.08, 9),
-                    stoneMat
-                );
-                seg.position.y = 2.0 + i * 0.96;
-                
-                const twist = Math.sin(i * 1.15) * 0.72;
-                seg.rotation.z = twist;
-                seg.rotation.x = Math.cos(i * 0.85) * 0.38;
-                
-                seg.castShadow = true;
-                seg.receiveShadow = true;
-                group.add(seg);
-            }
-            
-            const head = new THREE.Mesh(
-                new THREE.SphereGeometry(0.68, 8, 8),
-                stoneMat
-            );
-            head.position.y = 2.0 + 9 * 0.96 + 0.3;
-            head.castShadow = true;
-            group.add(head);
-            
-            const eyeGeo = new THREE.SphereGeometry(0.16, 8, 8);
-            const eyeMat = new THREE.MeshBasicMaterial({ color: CONFIG.EYE_GLOW });
-            const stoneEye = new THREE.Mesh(eyeGeo, eyeMat);
-            stoneEye.position.set(0.32, head.position.y + 0.18, 0.25);
-            group.add(stoneEye);
-            
-            return group;
-        }
+document.addEventListener('keydown',e=>{
+    let d=null;
+    if(e.key==='ArrowLeft'||e.key==='a') d=new THREE.Vector3(-1,0,0);
+    if(e.key==='ArrowRight'||e.key==='d') d=new THREE.Vector3(1,0,0);
+    if(e.key==='ArrowUp'||e.key==='w') d=new THREE.Vector3(0,0,-1);
+    if(e.key==='ArrowDown'||e.key==='s') d=new THREE.Vector3(0,0,1);
 
-        // Initialize Three.js scene
-        function initScene() {
-            scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(CONFIG.FOG_COLOR, 18, 110);
-            
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
-            camera.position.set(0, 38, 45);
-            camera.lookAt(0, 0, 0);
-            
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            document.body.appendChild(renderer.domElement);
-            
-            clock = new THREE.Clock();
-            
-            // Lighting
-            ambientLight = new THREE.AmbientLight(0x335577, 0.68);
-            scene.add(ambientLight);
-            
-            hemiLight = new THREE.HemisphereLight(0x445577, CONFIG.FLOOR_COLOR, 0.58);
-            scene.add(hemiLight);
-            
-            dirLight = new THREE.DirectionalLight(0xffeecc, 1.3);
-            dirLight.position.set(25, 40, 20);
-            dirLight.castShadow = true;
-            dirLight.shadow.mapSize.width = 1024;
-            dirLight.shadow.mapSize.height = 1024;
-            dirLight.shadow.camera.near = 1;
-            dirLight.shadow.camera.far = 100;
-            dirLight.shadow.camera.left = -42;
-            dirLight.shadow.camera.right = 42;
-            dirLight.shadow.camera.top = 42;
-            dirLight.shadow.camera.bottom = -42;
-            scene.add(dirLight);
-            
-            redLight = new THREE.PointLight(0xff2233, 0.9, 80);
-            redLight.position.set(15, 12, -15);
-            scene.add(redLight);
-            
-            // Large forest floor
-            const floorGeo = new THREE.PlaneGeometry(
-                CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 72,
-                CONFIG.GRID_SIZE * CONFIG.CELL_SIZE + 72
-            );
-            const floorMat = new THREE.MeshStandardMaterial({
-                color: CONFIG.FLOOR_COLOR,
-                roughness: 0.88,
-                metalness: 0.12
-            });
-            const floor = new THREE.Mesh(floorGeo, floorMat);
-            floor.rotation.x = -Math.PI / 2;
-            floor.position.y = -0.1;
-            floor.receiveShadow = true;
-            scene.add(floor);
-            
-            const arenaHalf = (CONFIG.GRID_SIZE * CONFIG.CELL_SIZE) / 2;
-            
-            // Background glowing eyes
-            eyeMeshes = [];
-            const eyeCountPerWall = 6;
-            for (let i = 0; i < eyeCountPerWall; i++) {
-                const eye = createEye();
-                eye.position.set(-arenaHalf - 2, 3 + Math.random() * 4, -arenaHalf + 4 + (i * (arenaHalf * 2 / (eyeCountPerWall - 1))));
-                scene.add(eye);
-                eyeMeshes.push(eye);
-            }
-            for (let i = 0; i < eyeCountPerWall; i++) {
-                const eye = createEye();
-                eye.position.set(arenaHalf + 2, 3 + Math.random() * 4, -arenaHalf + 4 + (i * (arenaHalf * 2 / (eyeCountPerWall - 1))));
-                scene.add(eye);
-                eyeMeshes.push(eye);
-            }
-            for (let i = 0; i < eyeCountPerWall; i++) {
-                const eye = createEye();
-                eye.position.set(-arenaHalf + 4 + (i * (arenaHalf * 2 / (eyeCountPerWall - 1))), 3 + Math.random() * 4, -arenaHalf - 2);
-                scene.add(eye);
-                eyeMeshes.push(eye);
-            }
-            
-            // Forest trees (reduced count)
-            const numTrees = 20;
-            const treeSpread = CONFIG.GRID_SIZE * CONFIG.CELL_SIZE * 1.9;
-            for (let i = 0; i < numTrees; i++) {
-                const tree = createTree();
-                const x = (Math.random() - 0.5) * treeSpread;
-                const z = (Math.random() - 0.5) * treeSpread;
-                tree.position.set(x, 0, z);
-                tree.rotation.y = Math.random() * Math.PI * 2;
-                scene.add(tree);
-            }
-            
-            // Serpent stones
-            const numSerpentStones = 8;
-            for (let i = 0; i < numSerpentStones; i++) {
-                const stone = createSerpentStone();
-                const x = (Math.random() - 0.5) * treeSpread * 0.82;
-                const z = (Math.random() - 0.5) * treeSpread * 0.82;
-                stone.position.set(x, 0, z);
-                stone.rotation.y = Math.random() * Math.PI * 2;
-                scene.add(stone);
-            }
-            
-            // Resize handler
-            const handleResize = () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            };
-            window.addEventListener('resize', handleResize);
-            
-            console.log('%c3D HORROR SNAKE - ULTRA SMOOTH Edition Ready', 'color:#00ff88; font-family:monospace');
-        }
+    if(d){
+        directionQueue.push(d);
+        if(directionQueue.length>2) directionQueue.shift();
+    }
 
-        // Initialize snake using currently selected type
-        function initSnake() {
-            snakeMeshes.forEach(m => scene.remove(m));
-            snakeMeshes = [];
-            snakeGridPositions = [];
-            
-            const startX = Math.floor(CONFIG.GRID_SIZE / 2);
-            const startZ = Math.floor(CONFIG.GRID_SIZE / 2);
-            
-            for (let i = 0; i < CONFIG.INITIAL_LENGTH; i++) {
-                const gridPos = new THREE.Vector3(startX - i, 0, startZ);
-                snakeGridPositions.push(gridPos);
-                
-                const isHead = (i === 0);
-                const segment = createSegmentMesh(isHead, selectedSnakeType);
-                segment.position.copy(gridToWorld(gridPos));
-                scene.add(segment);
-                snakeMeshes.push(segment);
-            }
-            
-            previousSnakeGrid = snakeGridPositions.map(pos => pos.clone());
-            direction = new THREE.Vector3(1, 0, 0);
-            pendingDirection = null;
-        }
+    if(e.key==='r') location.reload();
+});
 
-        // Spawn food
-        function spawnFood() {
-            if (foodMesh) scene.remove(foodMesh);
-            
-            let pos;
-            let attempts = 0;
-            do {
-                pos = new THREE.Vector3(
-                    Math.floor(Math.random() * CONFIG.GRID_SIZE),
-                    0,
-                    Math.floor(Math.random() * CONFIG.GRID_SIZE)
-                );
-                attempts++;
-            } while (
-                attempts < 100 &&
-                snakeGridPositions.some(s => s.x === pos.x && s.z === pos.z)
-            );
-            
-            foodGrid = pos;
-            
-            foodMesh = new THREE.Mesh(
-                new THREE.IcosahedronGeometry(CONFIG.CELL_SIZE * 0.45, 1),
-                new THREE.MeshStandardMaterial({
-                    color: 0xff1122,
-                    emissive: 0xff0000,
-                    emissiveIntensity: 1.6,
-                    roughness: 0.2
-                })
-            );
-            foodMesh.position.copy(gridToWorld(foodGrid));
-            foodMesh.castShadow = true;
-            scene.add(foodMesh);
-        }
+window.chooseSnake=function(t){
+    selectedSnake=t;
+    document.querySelectorAll('.snake-option').forEach(el=>el.classList.remove('selected'));
+    document.querySelectorAll('.snake-option')[t].classList.add('selected');
+    chosen=true;
+};
 
-        // Core move logic (length counter removed)
-        function moveSnake() {
-            if (gameOver || paused) return;
-            
-            if (pendingDirection) {
-                if (!pendingDirection.clone().multiplyScalar(-1).equals(direction)) {
-                    direction.copy(pendingDirection);
-                }
-                pendingDirection = null;
-            }
-            
-            const oldGrid = snakeGridPositions.map(pos => pos.clone());
-            
-            const head = snakeGridPositions[0];
-            const newHead = head.clone().add(direction);
-            
-            const outOfBounds = 
-                newHead.x < 0 || newHead.x >= CONFIG.GRID_SIZE ||
-                newHead.z < 0 || newHead.z >= CONFIG.GRID_SIZE;
-            
-            const selfCollision = snakeGridPositions.some(pos => 
-                pos.x === newHead.x && pos.z === newHead.z
-            );
-            
-            if (outOfBounds || selfCollision) {
-                triggerGameOver();
-                return;
-            }
-            
-            snakeGridPositions.unshift(newHead);
-            
-            const ate = foodGrid && newHead.x === foodGrid.x && newHead.z === foodGrid.z;
-            
-            if (ate) {
-                score++;
-                document.getElementById('score').textContent = score;
-                triggerJumpScare();
-                spawnFood();
-                
-                // Progressive speed increase
-                if (score % 5 === 0) {
-                    MOVE_INTERVAL = Math.max(82, MOVE_INTERVAL - 16);
-                }
-            } else {
-                snakeGridPositions.pop();
-            }
-            
-            // Add missing meshes (snake still grows)
-            while (snakeMeshes.length < snakeGridPositions.length) {
-                const tailGrid = snakeGridPositions[snakeGridPositions.length - 1];
-                const newSegment = createSegmentMesh(false, selectedSnakeType);
-                newSegment.position.copy(gridToWorld(tailGrid));
-                scene.add(newSegment);
-                snakeMeshes.push(newSegment);
-            }
-            
-            previousSnakeGrid = oldGrid;
-            if (snakeGridPositions.length > previousSnakeGrid.length) {
-                previousSnakeGrid.push(previousSnakeGrid[previousSnakeGrid.length - 1].clone());
-            }
-        }
+document.getElementById('startBtn').onclick=()=>{
+    if(!chosen) return alert("Pick a snake!");
+    document.getElementById('snakeSelect').style.display='none';
 
-        // Jump-scare on eat
-        function triggerJumpScare() {
-            const flashEl = document.getElementById('flash');
-            flashEl.style.transition = 'none';
-            flashEl.style.opacity = '0.78';
-            setTimeout(() => {
-                flashEl.style.transition = 'opacity 110ms ease-out';
-                flashEl.style.opacity = '0';
-            }, 8);
-            
-            shakeIntensity = 2.0;
-            shakeDecay = 0.11;
-            
-            dirLight.intensity = 3.0;
-            setTimeout(() => { if (!gameOver && !paused) dirLight.intensity = 1.3; }, 75);
-            
-            if (snakeMeshes[0]) {
-                snakeMeshes[0].scale.set(1.42, 1.42, 1.42);
-                setTimeout(() => {
-                    if (snakeMeshes[0]) snakeMeshes[0].scale.set(1, 1, 1);
-                }, 110);
-            }
-        }
+    init();
+    initSnake();
+    spawnFood();
+    animate();
+};
+</script>
 
-        // Game over
-        function triggerGameOver() {
-            gameOver = true;
-            const go = document.getElementById('gameOver');
-            go.style.display = 'block';
-            document.getElementById('finalScoreDisplay').textContent = `FINAL SCORE: ${score}`;
-            
-            scene.fog.color.setHex(0x330000);
-            camera.position.y += 8;
-            camera.lookAt(0, -5, 0);
-            
-            snakeMeshes.forEach((mesh) => {
-                if (mesh.material) {
-                    mesh.material.emissive = new THREE.Color(0xff0000);
-                    mesh.material.emissiveIntensity = 2.8;
-                }
-            });
-            
-            if (score > highScore) {
-                highScore = score;
-                localStorage.setItem('horrorSnakeHighScore', highScore);
-                document.getElementById('highScore').textContent = highScore;
-            }
-        }
-
-        // Keyboard controls
-        function setupControls() {
-            document.addEventListener('keydown', (e) => {
-                if (gameOver) {
-                    if (e.key.toLowerCase() === 'r') {
-                        resetGame();
-                        e.preventDefault();
-                    }
-                    return;
-                }
-                
-                // Pause
-                if (e.key.toLowerCase() === 'p') {
-                    paused = !paused;
-                    document.getElementById('pause').style.display = paused ? 'block' : 'none';
-                    e.preventDefault();
-                    return;
-                }
-                
-                let newDir = null;
-                
-                switch (e.key) {
-                    case 'ArrowLeft':
-                    case 'a':
-                    case 'A':
-                        newDir = new THREE.Vector3(-1, 0, 0);
-                        break;
-                    case 'ArrowRight':
-                    case 'd':
-                    case 'D':
-                        newDir = new THREE.Vector3(1, 0, 0);
-                        break;
-                    case 'ArrowUp':
-                    case 'w':
-                    case 'W':
-                        newDir = new THREE.Vector3(0, 0, -1);
-                        break;
-                    case 'ArrowDown':
-                    case 's':
-                    case 'S':
-                        newDir = new THREE.Vector3(0, 0, 1);
-                        break;
-                }
-                
-                if (newDir) {
-                    pendingDirection = newDir;
-                    e.preventDefault();
-                }
-            });
-        }
-
-        // Reset game (keeps selected snake type)
-        function resetGame() {
-            gameOver = false;
-            paused = false;
-            score = 0;
-            MOVE_INTERVAL = 200;
-            
-            document.getElementById('score').textContent = '0';
-            document.getElementById('gameOver').style.display = 'none';
-            document.getElementById('pause').style.display = 'none';
-            scene.fog.color.setHex(CONFIG.FOG_COLOR);
-            
-            initSnake();
-            spawnFood();
-            lastMoveTime = Date.now();
-            
-            camera.position.set(0, 38, 45);
-            camera.lookAt(0, 0, 0);
-        }
-
-        // Main animation loop
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            const time = clock.getElapsedTime();
-            const currentTime = Date.now();
-            
-            if (!gameOver && !paused && currentTime - lastMoveTime > MOVE_INTERVAL) {
-                moveSnake();
-                lastMoveTime = currentTime;
-            }
-            
-            const progress = Math.min((currentTime - lastMoveTime) / MOVE_INTERVAL, 1);
-            
-            // Ultra-smooth snake interpolation
-            for (let i = 0; i < snakeMeshes.length; i++) {
-                if (!previousSnakeGrid[i] || !snakeGridPositions[i]) continue;
-                
-                const from = gridToWorld(previousSnakeGrid[i]);
-                const to = gridToWorld(snakeGridPositions[i]);
-                
-                const lerpedPos = from.clone().lerp(to, progress);
-                snakeMeshes[i].position.copy(lerpedPos);
-                
-                if (i === 0 && snakeMeshes[0]) {
-                    snakeMeshes[0].rotation.y = Math.atan2(direction.x, direction.z);
-                } else if (i > 0 && snakeGridPositions[i-1] && snakeGridPositions[i]) {
-                    const dir = snakeGridPositions[i-1].clone().sub(snakeGridPositions[i]).normalize();
-                    const angle = Math.atan2(dir.x, dir.z);
-                    snakeMeshes[i].rotation.y = angle;
-                }
-            }
-            
-            if (foodMesh) {
-                foodMesh.rotation.y = time * 2.8;
-                const pulse = 1 + Math.sin(time * 9) * 0.18;
-                foodMesh.scale.setScalar(pulse);
-            }
-            
-            dirLight.intensity = 1.3 + Math.sin(time * 14) * 0.25;
-            
-            eyeMeshes.forEach((eye, i) => {
-                const scale = 1 + Math.sin(time * 6.5 + i) * 0.16;
-                eye.scale.setScalar(scale);
-            });
-            
-            if (shakeIntensity > 0) {
-                camera.position.x += (Math.random() - 0.5) * shakeIntensity * 1.1;
-                camera.position.y += (Math.random() - 0.5) * shakeIntensity * 0.65;
-                camera.position.z += (Math.random() - 0.5) * shakeIntensity * 0.45;
-                shakeIntensity *= (1 - shakeDecay);
-                if (shakeIntensity < 0.04) shakeIntensity = 0;
-            }
-            
-            renderer.render(scene, camera);
-        }
-
-        // Start the actual game (called after snake selection)
-        function startGame() {
-            initScene();
-            initSnake();
-            spawnFood();
-            setupControls();
-            lastMoveTime = Date.now();
-            
-            document.getElementById('highScore').textContent = highScore;
-            
-            animate();
-            
-            console.log('%c✅ 3D HORROR SNAKE - Selected: ' + SNAKE_TYPES[selectedSnakeType].name + ' | Fully playable', 'color:#00ff88; background:#110022; padding:2px 8px');
-        }
-
-        // Snake selection handler
-        window.chooseSnake = function(type) {
-            selectedSnakeType = type;
-            document.getElementById('snakeSelect').style.display = 'none';
-            startGame();
-        };
-
-        // Game starts only after player chooses a serpent
-        console.log('%c3D HORROR SNAKE ready - choose your serpent to begin', 'color:#ff8800; font-family:monospace');
-    </script>
 </body>
 </html>
