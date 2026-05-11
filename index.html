@@ -3,99 +3,202 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D HORROR SNAKE - SMOOTH</title>
+<title>3D HORROR SNAKE - PREMIUM</title>
+
+<!-- Premium retro-horror fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Press+Start+2P&display=swap" rel="stylesheet">
 
 <style>
+    :root {
+        --neon-red: #ff0000;
+        --dark-bg: #0a0014;
+    }
+    
     body { 
         margin:0; 
         overflow:hidden; 
         background:#000; 
-        font-family:monospace; 
+        font-family: 'Press Start 2P', monospace;
+        color: #fff;
     }
     canvas { display:block; }
 
+    /* PREMIUM UI BAR */
     #ui {
         position:absolute;
         top:20px; left:20px;
-        color:#ff0000;
-        text-shadow:0 0 12px #ff0000, 0 0 24px #ff0000;
-        font-size:28px;
-        display:flex; 
-        gap:12px;
+        display:flex;
+        align-items:center;
+        gap:40px;
+        background: rgba(15, 0, 25, 0.92);
+        padding: 12px 28px;
+        border: 4px solid var(--neon-red);
+        border-radius: 12px;
+        box-shadow: 
+            0 0 25px var(--neon-red),
+            0 0 45px var(--neon-red),
+            inset 0 0 20px #440000;
         z-index:10;
         user-select:none;
+        backdrop-filter: blur(8px);
     }
-    #score { 
-        transition:transform 0.15s cubic-bezier(0.68, -0.55, 0.27, 1.55); 
-        font-weight:bold;
+    .ui-label {
+        font-size: 18px;
+        letter-spacing: 3px;
+        text-shadow: 0 0 12px var(--neon-red);
+    }
+    #score, #highScore {
+        font-size: 28px;
+        font-weight: bold;
+        color: #fff;
+        text-shadow: 0 0 15px var(--neon-red), 0 0 30px var(--neon-red);
+        transition: transform 0.15s cubic-bezier(0.68, -0.55, 0.27, 1.55);
     }
 
+    /* SNAKE SELECTION - PREMIUM OVERLAY */
     #snakeSelect {
         position:absolute;
         width:100%; height:100%;
-        background:#0a0014;
+        background: linear-gradient(180deg, #0a0014 0%, #1a0022 100%);
         display:flex; 
         flex-direction:column;
         align-items:center; 
         justify-content:center;
         color:#ff0000;
         z-index:100;
-        transition: opacity 0.4s ease;
+        transition: opacity 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+        box-shadow: inset 0 0 120px rgba(255,0,0,0.3);
     }
     #snakeSelect h1 {
-        font-size:52px;
-        margin-bottom:40px;
+        font-family: 'Creepster', cursive;
+        font-size: 62px;
+        margin-bottom: 30px;
         text-shadow: 
             0 0 20px #ff0000,
             0 0 40px #ff0000,
-            0 0 60px #880000;
-        letter-spacing: 6px;
+            0 0 70px #880000,
+            0 0 100px #440000;
+        letter-spacing: 8px;
+        animation: titlePulse 2s infinite alternate ease-in-out;
+    }
+    @keyframes titlePulse {
+        from { text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 70px #880000; }
+        to   { text-shadow: 0 0 30px #ff0000, 0 0 60px #ff0000, 0 0 100px #880000; }
     }
 
     .snake-option {
         cursor:pointer;
         padding:22px 40px;
-        margin:12px;
-        border:4px solid #ff0000;
-        font-size:32px;
+        margin:14px;
+        border:5px solid;
+        font-size:30px;
         font-weight:bold;
-        min-width:240px;
+        min-width:280px;
         text-align:center;
-        transition: all 0.2s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-        box-shadow: 0 0 20px #ff0000;
+        transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        box-shadow: 0 0 25px currentColor;
+        border-radius: 8px;
+        position: relative;
+        overflow: hidden;
+    }
+    .snake-option::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 40%;
+        height: 300%;
+        background: linear-gradient(120deg, transparent, rgba(255,255,255,0.4), transparent);
+        transform: skewX(-25deg);
+        animation: shimmer 4s linear infinite;
+        opacity: 0;
+    }
+    .snake-option:hover::before {
+        opacity: 1;
+    }
+    @keyframes shimmer {
+        100% { transform: translateX(300%); }
     }
     .snake-option:hover {
-        transform: scale(1.08);
-        box-shadow: 0 0 30px #ff0000;
+        transform: scale(1.1) rotate(2deg);
+        box-shadow: 0 0 45px currentColor;
     }
     .snake-option.selected {
-        background:#220000;
-        transform: scale(1.05);
-        box-shadow: 0 0 40px #ff0000;
+        background: #220000;
+        transform: scale(1.08);
+        box-shadow: 0 0 55px currentColor;
     }
 
-    #startBtn {
-        margin-top:40px;
-        padding:16px 48px;
-        background:#ff0000;
+    /* PREMIUM BUTTONS */
+    .premium-btn {
+        padding:18px 56px;
+        background: linear-gradient(#ff0000, #cc0000);
         color:#000;
-        font-size:28px;
+        font-size:26px;
         font-weight:bold;
         border:none;
+        border-radius: 8px;
         cursor:pointer;
-        box-shadow: 0 0 30px #ff0000;
-        transition: all 0.2s ease;
+        box-shadow: 0 0 30px var(--neon-red), 0 8px 0 #880000;
+        transition: all 0.25s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        text-transform: uppercase;
+        letter-spacing: 2px;
     }
-    #startBtn:hover {
-        transform: scale(1.1);
-        box-shadow: 0 0 50px #ff0000;
+    .premium-btn:hover {
+        transform: scale(1.12) translateY(-3px);
+        box-shadow: 0 0 55px var(--neon-red), 0 12px 0 #880000;
     }
-    #startBtn:disabled {
-        opacity:0.4;
-        cursor:not-allowed;
+    .premium-btn:active {
+        transform: scale(0.98);
     }
 
+    /* GAME OVER - PREMIUM */
     #gameOver {
+        position:absolute;
+        top:50%; left:50%;
+        transform:translate(-50%,-50%);
+        color:#ff0000;
+        font-size:72px;
+        text-align:center;
+        display:none;
+        text-shadow: 
+            0 0 25px #ff0000,
+            0 0 50px #ff0000,
+            0 0 90px #880000;
+        line-height:1.05;
+        z-index:200;
+        user-select:none;
+        background: rgba(15, 0, 25, 0.95);
+        padding: 40px 70px;
+        border: 8px solid #ff0000;
+        border-radius: 20px;
+        box-shadow: 0 0 80px #ff0000;
+    }
+    #finalScore {
+        font-size:48px;
+        display:block;
+        margin:20px 0 8px;
+        color:#fff;
+        text-shadow: 0 0 20px #ff0000;
+    }
+    #highScoreDisplay {
+        font-size:24px;
+        color:#ddd;
+        margin-bottom: 12px;
+    }
+    #newHigh {
+        color:#ffdd00;
+        font-size:26px;
+        text-shadow: 0 0 25px #ff0;
+        animation: newHighPulse 1.2s infinite alternate;
+    }
+    @keyframes newHighPulse {
+        from { opacity: 0.6; }
+        to { opacity: 1; }
+    }
+
+    /* PAUSE MENU - PREMIUM */
+    #pauseMenu {
         position:absolute;
         top:50%; left:50%;
         transform:translate(-50%,-50%);
@@ -104,19 +207,32 @@
         text-align:center;
         display:none;
         text-shadow: 
-            0 0 20px #ff0000,
-            0 0 40px #ff0000,
-            0 0 80px #880000;
-        line-height:1.1;
+            0 0 25px #ff0000,
+            0 0 50px #ff0000,
+            0 0 90px #880000;
+        line-height:1.05;
         z-index:200;
         user-select:none;
+        background: rgba(15, 0, 25, 0.95);
+        padding: 40px 70px;
+        border: 8px solid #ff0000;
+        border-radius: 20px;
+        box-shadow: 0 0 80px #ff0000;
     }
-    #finalScore {
-        font-size:36px;
-        display:block;
-        margin-top:12px;
-        color:#fff;
-        text-shadow: 0 0 15px #ff0000;
+
+    /* SUBTLE INSTRUCTIONS */
+    #instructions {
+        position: absolute;
+        bottom: 25px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 14px;
+        color: #666;
+        text-shadow: 0 0 8px #ff0000;
+        letter-spacing: 2px;
+        z-index: 10;
+        opacity: 0.7;
+        pointer-events: none;
     }
 </style>
 </head>
@@ -124,23 +240,54 @@
 <body>
 
 <div id="snakeSelect">
-    <h1>CHOOSE YOUR SERPENT</h1>
+    <h1>3D HORROR SNAKE</h1>
+    <div style="margin-bottom:30px; font-size:18px; letter-spacing:4px; opacity:0.9;">PREMIUM EDITION</div>
+    
     <div>
         <div class="snake-option" style="border-color:#22aa22;color:#22aa22" onclick="chooseSnake(0)">VENOM</div>
         <div class="snake-option" style="border-color:#cc2222;color:#cc2222" onclick="chooseSnake(1)">CRIMSON</div>
         <div class="snake-option" style="border-color:#4444aa;color:#4444aa" onclick="chooseSnake(2)">PHANTOM</div>
     </div>
-    <button id="startBtn">START GAME</button>
+    
+    <button id="startBtn" class="premium-btn">START GAME</button>
+    
+    <div id="selectHighScore" style="margin-top:40px; font-size:18px; color:#888; letter-spacing:2px;">
+        HIGH SCORE <span id="selectHigh">0</span>
+    </div>
 </div>
 
+<!-- PREMIUM IN-GAME UI -->
 <div id="ui">
-    SCORE: <span id="score">0</span>
+    <div>
+        <span class="ui-label">SCORE</span><br>
+        <span id="score">0</span>
+    </div>
+    <div>
+        <span class="ui-label">HIGH</span><br>
+        <span id="highScore">0</span>
+    </div>
 </div>
 
+<div id="instructions">
+    WASD / ARROWS • SWIPE ON MOBILE • P = PAUSE
+</div>
+
+<!-- GAME OVER -->
 <div id="gameOver">
     YOU DIED<br>
-    <span id="finalScore" style="font-size:42px">0</span><br>
-    PRESS R TO RESTART
+    <span id="finalScore">0</span><br>
+    <span id="highScoreDisplay">HIGH SCORE 0</span><br>
+    <span id="newHigh" style="display:none">NEW HIGH SCORE!</span><br><br>
+    <button onclick="restart()" class="premium-btn" style="font-size:24px; padding:14px 42px;">RESTART GAME</button>
+    <div style="margin-top:25px; font-size:18px; color:#666;">PRESS R TO RESTART</div>
+</div>
+
+<!-- PAUSE MENU -->
+<div id="pauseMenu">
+    PAUSED
+    <div style="font-size:24px; margin:30px 0 40px; color:#ddd; letter-spacing:3px;">PRESS P TO RESUME</div>
+    <button onclick="resumeGame()" class="premium-btn" style="font-size:24px; padding:14px 42px;">RESUME</button>
+    <button onclick="restart()" class="premium-btn" style="font-size:24px; padding:14px 42px; margin-top:18px;">RESTART GAME</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
@@ -154,9 +301,13 @@ let directionQueue = [];
 let selectedSnake = 0;
 let chosen = false;
 let score = 0;
+let highScore = parseInt(localStorage.getItem('3dHorrorSnakeHighScore') || '0', 10);
 let MOVE_INTERVAL = 200;
 let accumulator = 0;
 let gameActive = false;
+let isPaused = false;
+let touchStartX = 0;
+let touchStartY = 0;
 
 const GRID = 20;
 const CELL = 2;
@@ -178,7 +329,6 @@ function gridToWorld(p) {
 function createSegment(head = false) {
     let geo, mat;
     if (head) {
-        // Elongated head box (longer in local +Z = forward)
         geo = new THREE.BoxGeometry(1.85, 1.55, 2.6);
         mat = new THREE.MeshStandardMaterial({
             color: TYPES[selectedSnake].head,
@@ -186,7 +336,6 @@ function createSegment(head = false) {
             metalness: 0.6
         });
     } else {
-        // Smooth sphere body segments (no orientation issues)
         geo = new THREE.SphereGeometry(0.88, 16, 16);
         mat = new THREE.MeshStandardMaterial({
             color: TYPES[selectedSnake].body,
@@ -199,7 +348,7 @@ function createSegment(head = false) {
 
 function init() {
     scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x0a0014, 35, 95); // horror atmosphere
+    scene.fog = new THREE.Fog(0x0a0014, 35, 95);
 
     camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     
@@ -208,13 +357,11 @@ function init() {
         alpha: false
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // crisp but performant
-    renderer.shadowMap.enabled = false; // disabled for max smoothness
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.body.appendChild(renderer.domElement);
 
     clock = new THREE.Clock();
 
-    // Enhanced lighting for horror mood
     const ambient = new THREE.AmbientLight(0x404060, 0.75);
     scene.add(ambient);
 
@@ -222,7 +369,6 @@ function init() {
     light.position.set(25, 35, 15);
     scene.add(light);
 
-    // Dark horror floor
     const floor = new THREE.Mesh(
         new THREE.PlaneGeometry(200, 200),
         new THREE.MeshStandardMaterial({ 
@@ -233,7 +379,6 @@ function init() {
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
-    // Responsive resize
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
@@ -246,7 +391,6 @@ function initSnake() {
     snakeMeshes = [];
     snakeGrid = [];
 
-    // Initial snake positioned facing +X
     for (let i = 0; i < 6; i++) {
         const p = new THREE.Vector3(10 - i, 0, 10);
         snakeGrid.push(p);
@@ -287,10 +431,18 @@ function spawnFood() {
     scene.add(foodMesh);
 }
 
-function move() {
-    if (!gameActive) return;
+function updateHighScoreUI() {
+    const hsEl = document.getElementById('highScore');
+    if (hsEl) hsEl.textContent = highScore;
+    
+    // Also update selection screen high score
+    const selectHs = document.getElementById('selectHigh');
+    if (selectHs) selectHs.textContent = highScore;
+}
 
-    // Process queued direction change (prevents 180° turns)
+function move() {
+    if (!gameActive || isPaused) return;
+
     if (directionQueue.length) {
         const next = directionQueue.shift();
         if (!next.clone().multiplyScalar(-1).equals(direction)) {
@@ -300,20 +452,16 @@ function move() {
 
     const newHead = snakeGrid[0].clone().add(direction);
 
-    // Boundary check
     if (newHead.x < 0 || newHead.x >= GRID || newHead.z < 0 || newHead.z >= GRID) {
         gameOver();
         return;
     }
 
-    // Check if eating
     const ate = newHead.equals(foodGrid);
 
-    // Self-collision (smart tail handling)
     let collision = false;
     for (let i = 0; i < snakeGrid.length; i++) {
         if (snakeGrid[i].equals(newHead)) {
-            // Allow passing over tail only if not growing
             if (!( !ate && i === snakeGrid.length - 1 )) {
                 collision = true;
                 break;
@@ -325,25 +473,22 @@ function move() {
         return;
     }
 
-    // Move snake
     snakeGrid.unshift(newHead);
 
     if (ate) {
         score++;
         document.getElementById('score').textContent = score;
         
-        // Score pop animation
         const s = document.getElementById('score');
-        s.style.transform = 'scale(1.6)';
-        setTimeout(() => { s.style.transform = 'scale(1)'; }, 140);
+        s.style.transform = 'scale(1.8)';
+        setTimeout(() => { s.style.transform = 'scale(1)'; }, 160);
 
         spawnFood();
-        MOVE_INTERVAL = Math.max(85, 200 - score * 3.5); // smoother acceleration
+        MOVE_INTERVAL = Math.max(80, 200 - score * 3.8);
     } else {
         snakeGrid.pop();
     }
 
-    // Add new body segment only when growing
     while (snakeMeshes.length < snakeGrid.length) {
         const m = createSegment(false);
         scene.add(m);
@@ -356,16 +501,14 @@ function move() {
 function animate() {
     requestAnimationFrame(animate);
 
-    if (!gameActive) {
-        // Still render the final frame when dead
-        renderer.render(scene, camera);
+    if (!gameActive || isPaused) {
+        if (scene && camera && renderer) renderer.render(scene, camera);
         return;
     }
 
     const delta = clock.getDelta() * 1000;
     accumulator += delta;
 
-    // Fixed timestep movement
     while (accumulator >= MOVE_INTERVAL) {
         move();
         accumulator -= MOVE_INTERVAL;
@@ -373,24 +516,21 @@ function animate() {
 
     const progress = Math.min(accumulator / MOVE_INTERVAL, 1);
 
-    // Interpolate all segments (super smooth)
     for (let i = 0; i < snakeMeshes.length; i++) {
         const from = gridToWorld(prevGrid[i] || snakeGrid[i]);
         const to = gridToWorld(snakeGrid[i]);
 
         snakeMeshes[i].position.copy(from.lerp(to, progress));
 
-        // Head always faces current direction (instant but feels responsive)
         if (i === 0) {
             snakeMeshes[0].rotation.y = Math.atan2(direction.x, direction.z);
 
-            // Dynamic camera that follows behind the snake's direction
             const headPos = snakeMeshes[0].position;
             const behind = direction.clone().multiplyScalar(-23);
             behind.y = 19;
             const camTarget = headPos.clone().add(behind);
 
-            camera.position.lerp(camTarget, 0.12);
+            camera.position.lerp(camTarget, 0.14);
             camera.lookAt(headPos);
         }
     }
@@ -400,16 +540,29 @@ function animate() {
 
 function gameOver() {
     gameActive = false;
-    const finalEl = document.getElementById('finalScore');
-    finalEl.textContent = score;
+    isPaused = false;
+
+    const oldHigh = highScore;
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('3dHorrorSnakeHighScore', highScore);
+    }
+
+    document.getElementById('finalScore').textContent = score;
+    document.getElementById('highScoreDisplay').textContent = `HIGH SCORE ${highScore}`;
+    document.getElementById('newHigh').style.display = (score > oldHigh) ? 'block' : 'none';
+
     document.getElementById('gameOver').style.display = 'block';
+    updateHighScoreUI();
 }
 
 function restart() {
     gameActive = true;
+    isPaused = false;
     score = 0;
     document.getElementById('score').textContent = '0';
     document.getElementById('gameOver').style.display = 'none';
+    document.getElementById('pauseMenu').style.display = 'none';
     
     direction = new THREE.Vector3(1, 0, 0);
     directionQueue = [];
@@ -418,25 +571,19 @@ function restart() {
 
     initSnake();
     spawnFood();
+    updateHighScoreUI();
 }
 
-document.addEventListener('keydown', e => {
-    let d = null;
-    if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') d = new THREE.Vector3(-1, 0, 0);
-    if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') d = new THREE.Vector3(1, 0, 0);
-    if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'w') d = new THREE.Vector3(0, 0, -1);
-    if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') d = new THREE.Vector3(0, 0, 1);
+function togglePause() {
+    if (!gameActive) return;
+    isPaused = !isPaused;
+    document.getElementById('pauseMenu').style.display = isPaused ? 'block' : 'none';
+}
 
-    if (d) {
-        directionQueue.push(d);
-        // Limit queue to prevent input spam
-        if (directionQueue.length > 2) directionQueue.shift();
-    }
-
-    if (e.key.toLowerCase() === 'r') {
-        if (!gameActive) restart();
-    }
-});
+function resumeGame() {
+    isPaused = false;
+    document.getElementById('pauseMenu').style.display = 'none';
+}
 
 window.chooseSnake = function(t) {
     selectedSnake = t;
@@ -444,7 +591,6 @@ window.chooseSnake = function(t) {
         el.classList.toggle('selected', i === t);
     });
     chosen = true;
-    // Enable start button visually
     document.getElementById('startBtn').disabled = false;
 };
 
@@ -454,19 +600,72 @@ document.getElementById('startBtn').onclick = () => {
         return;
     }
     
-    // Hide select screen with fade
     const selectScreen = document.getElementById('snakeSelect');
     selectScreen.style.opacity = '0';
     setTimeout(() => {
         selectScreen.style.display = 'none';
-    }, 400);
+    }, 600);
 
     init();
     initSnake();
     spawnFood();
     gameActive = true;
+    updateHighScoreUI();
     animate();
 };
+
+// KEYBOARD CONTROLS
+document.addEventListener('keydown', e => {
+    let d = null;
+    if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') d = new THREE.Vector3(-1, 0, 0);
+    if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') d = new THREE.Vector3(1, 0, 0);
+    if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'w') d = new THREE.Vector3(0, 0, -1);
+    if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') d = new THREE.Vector3(0, 0, 1);
+
+    if (d) {
+        directionQueue.push(d);
+        if (directionQueue.length > 2) directionQueue.shift();
+    }
+
+    if (e.key.toLowerCase() === 'r') {
+        if (!gameActive) restart();
+    }
+    if (e.key.toLowerCase() === 'p') {
+        togglePause();
+    }
+});
+
+// MOBILE SWIPE CONTROLS (PREMIUM TOUCH UX)
+document.addEventListener('touchstart', e => {
+    if (gameActive && !isPaused) {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }
+});
+
+document.addEventListener('touchend', e => {
+    if (!gameActive || isPaused) return;
+    
+    const touchEndX = e.changedTouches[0].screenX;
+    const touchEndY = e.changedTouches[0].screenY;
+    
+    const dx = touchEndX - touchStartX;
+    const dy = touchEndY - touchStartY;
+    
+    if (Math.abs(dx) < 40 && Math.abs(dy) < 40) return;
+    
+    let d = null;
+    if (Math.abs(dx) > Math.abs(dy)) {
+        d = dx > 0 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(-1, 0, 0);
+    } else {
+        d = dy > 0 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 0, -1);
+    }
+    
+    if (d) {
+        directionQueue.push(d);
+        if (directionQueue.length > 2) directionQueue.shift();
+    }
+});
 </script>
 
 </body>
